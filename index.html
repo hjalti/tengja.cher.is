@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="is">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raflagnir — æfingakerfi fyrir rafvirkjanema</title>
+<style>
+  :root{
+    --bg: #1b2229;
+    --bg-panel: #222b33;
+    --paper: #ece6d8;
+    --paper-line: #c9c0aa;
+    --ink: #2b2b28;
+    --brass: #c08a3e;
+    --brass-dim: #8a6530;
+    --ok: #4f9d5c;
+    --text: #e8e6df;
+    --text-dim: #9aa2ab;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --grot: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+    --body: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    --c-fasi: #8a5330;
+    --c-null: #2e6db4;
+    --c-jord: #3c8a3c;
+    --c-jord2: #d8c23a;
+    --c-mil1: #7a4fa0;
+    --c-mil2: #888d93;
+    --c-hlaupari: #b23a2e;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--body);}
+  body{min-height:100vh;}
+  .shell{max-width:1280px;margin:0 auto;padding:18px 18px 40px;}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+    border-bottom:2px solid #333e48;padding-bottom:14px;margin-bottom:18px;flex-wrap:wrap;}
+  .title-block h1{font-family:var(--grot);font-weight:600;letter-spacing:.3px;font-size:2.1rem;margin:0;color:var(--text);}
+  .title-block p{margin:2px 0 0;color:var(--text-dim);font-size:.95rem;}
+  .readout{background:#10151a;border:1px solid #333e48;border-radius:4px;padding:8px 16px;
+    font-family:var(--mono);color:#7fd88f;font-size:1.05rem;display:flex;gap:22px;align-items:center;white-space:nowrap;}
+  .readout div span{display:block;color:var(--text-dim);font-family:var(--body);font-size:.65rem;letter-spacing:.06em;margin-bottom:2px;}
+  .steps{display:flex;gap:6px;margin-top:10px;}
+  .step-dot{width:26px;height:6px;border-radius:3px;background:#333e48;transition:background .2s;}
+  .step-dot.done{background:var(--ok);}
+  .step-dot.current{background:var(--brass);}
+
+  .layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;}
+  @media (max-width:880px){ .layout{grid-template-columns:1fr;} }
+
+  .sheet{background:var(--paper);border-radius:6px;padding:0;overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 0 0 1px #d9d2bd;position:relative;}
+  .sheet-head{display:flex;justify-content:space-between;align-items:baseline;padding:14px 20px 6px;font-family:var(--grot);}
+  .sheet-head h2{margin:0;font-size:1.4rem;color:var(--ink);font-weight:600;}
+  .sheet-head .lvl-tag{font-family:var(--mono);font-size:.75rem;color:#7a725e;}
+  .sheet-desc{padding:0 20px 6px;color:#5a5548;font-size:.92rem;max-width:70ch;line-height:1.4;}
+  .power-hint{padding:0 20px 10px;color:#2f6e34;font-size:.85rem;font-weight:600;display:none;}
+  .power-hint.show{display:block;}
+  .canvas-wrap{padding:6px 10px 16px;}
+  svg.schematic{width:100%;height:auto;display:block;}
+
+  .grid-bg{fill:none;}
+  .pin{cursor:pointer;}
+  .pin circle.body{fill:#d7d2c4;stroke:#6b6656;stroke-width:2;}
+  .pin:hover circle.body{fill:#fff;stroke:var(--brass-dim);}
+  .pin.pending circle.body{fill:#fff2cf;stroke:var(--brass);stroke-width:3;}
+  .pin-label{font-family:var(--mono);font-size:12px;fill:#3a362c;}
+  .stub{stroke:#3a362c;stroke-width:2.4;}
+  .box-rect{fill:#f6f2e8;stroke:#3a362c;stroke-width:2;}
+  .box-label{font-family:var(--grot);font-size:16px;fill:#2b2820;font-weight:600;}
+  .toggle-hit{cursor:pointer;}
+  .wire-hit{fill:none;stroke:transparent;stroke-width:16;cursor:pointer;}
+  .wire-vis{fill:none;stroke-linecap:round;}
+
+  .toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);
+    background:#2b2820;color:#f6f2e8;padding:7px 16px;border-radius:4px;font-size:.85rem;
+    opacity:0;pointer-events:none;transition:opacity .2s, top .2s;font-family:var(--body);box-shadow:0 4px 14px rgba(0,0,0,.3);}
+  .toast.show{opacity:1;top:20px;}
+
+  .panel{background:var(--bg-panel);border:1px solid #333e48;border-radius:6px;padding:16px;margin-bottom:16px;}
+  .panel h3{margin:0 0 10px;font-family:var(--grot);font-size:1.05rem;font-weight:600;color:var(--text);letter-spacing:.2px;}
+  .swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .swatch{border:2px solid transparent;background:#151b21;border-radius:5px;padding:8px 4px 6px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;
+    font-family:var(--body);color:var(--text-dim);font-size:.68rem;text-align:center;line-height:1.15;}
+  .swatch .nub{width:34px;height:14px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);}
+  .swatch.active{border-color:var(--brass);color:var(--text);background:#20272e;}
+  .swatch .nub.striped{background-image: repeating-linear-gradient(45deg, var(--c-jord) 0 5px, var(--c-jord2) 5px 10px);}
+  .swatch small{color:var(--text-dim);font-size:.62rem;}
+
+  .btnrow{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  button.act{font-family:var(--grot);font-size:.95rem;font-weight:600;letter-spacing:.2px;
+    border:1px solid #3a4753;background:#2a333c;color:var(--text);padding:9px 14px;border-radius:5px;cursor:pointer;flex:1 1 auto;}
+  button.act:hover{background:#333e48;}
+  button.act.primary{background:var(--brass);border-color:var(--brass);color:#221803;}
+  button.act.primary:hover{background:#d29a4c;}
+  button.act.ghost{background:transparent;}
+  button.act:disabled{opacity:.4;cursor:not-allowed;}
+  button.act.next{background:var(--ok);border-color:var(--ok);color:#082a0c;display:none;}
+  button.act.next.show{display:block;}
+
+  .console{margin-top:12px;background:#10151a;border:1px solid #2b333c;border-radius:5px;padding:10px 12px;
+    font-family:var(--mono);font-size:.82rem;line-height:1.5;color:#9fe8ac;min-height:52px;max-height:220px;overflow:auto;}
+  .console .line{margin:0 0 4px;}
+  .console .bad{color:#f0a08f;}
+  .console .warn{color:#f0d18f;}
+  .console .ok{color:#9fe8ac;}
+  .console .info{color:#8fc6f0;}
+
+  .legend{font-size:.78rem;}
+  .legend .item{display:flex;align-items:center;gap:8px;margin-bottom:6px;color:var(--text-dim);}
+  .legend .nub{width:26px;height:11px;border-radius:2px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.3);}
+  .legend .nub.striped{background-image: repeating-linear-gradient(45deg, var(--c-jord) 0 4px, var(--c-jord2) 4px 8px);}
+  .legend b{color:var(--text);}
+
+  .starline{font-size:1.1rem;letter-spacing:2px;color:#4a5560;}
+  .starline .on{color:var(--brass);}
+
+  footer.done-banner{display:none;margin-top:16px;background:#1c2b1e;border:1px solid var(--ok);border-radius:6px;padding:14px 16px;}
+  footer.done-banner.show{display:block;}
+  footer.done-banner h3{margin:0 0 6px;color:#c9f0ce;}
+  footer.done-banner p{margin:0;color:#9fc6a4;font-size:.9rem;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <div class="title-block">
+      <h1>Raflagnir</h1>
+      <p>Æfingakerfi í víratengingum fyrir rafvirkjanema — dragðu rétta víra í rörin</p>
+      <div class="steps" id="steps"></div>
+    </div>
+    <div class="readout">
+      <div><span>Verkefni</span><b id="ro-level">1 / 6</b></div>
+      <div><span>Stig</span><b id="ro-score">0</b></div>
+      <div><span>Staða</span><b id="ro-status">Í vinnslu</b></div>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <div class="sheet">
+      <div class="sheet-head">
+        <h2 id="lvl-title">—</h2>
+        <span class="lvl-tag" id="lvl-tag">TEIKNING</span>
+      </div>
+      <div class="sheet-desc" id="lvl-desc">—</div>
+      <div class="power-hint" id="power-hint"></div>
+      <div class="canvas-wrap">
+        <svg class="schematic" id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="toast" id="toast"></div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h3>Vír-litir</h3>
+        <div class="swatches" id="swatches"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Aðgerðir</h3>
+        <div class="btnrow">
+          <button class="act primary" id="btn-check">Athuga tengingar</button>
+          <button class="act ghost" id="btn-reset">Núllstilla</button>
+        </div>
+        <div class="btnrow">
+          <button class="act ghost" id="btn-hint">Vísbending</button>
+          <button class="act next" id="btn-next">Næsta verkefni →</button>
+        </div>
+        <div class="console" id="console">
+          <p class="line info">Veldu vír-lit og smelltu svo á tvo tengipunkta til að tengja þá saman. Smelltu á vír til að fjarlægja hann.</p>
+        </div>
+        <div style="margin-top:10px;" id="starwrap">
+          <span class="starline" id="starline">☆☆☆</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Litakóði</h3>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="done-banner" id="done-banner">
+    <h3>🎉 Til hamingju — öll verkefni leyst!</h3>
+    <p id="done-text"></p>
+  </footer>
+
+</div>
+
+<script>
+/* =========================================================
+   LITIR
+========================================================= */
+const COLORS = {
+  fasi:     { label:'Fasi',        sub:'brúnn',                hex:'var(--c-fasi)' },
+  null_:    { label:'Núll',        sub:'blár',                 hex:'var(--c-null)' },
+  jord:     { label:'Jörð',        sub:'gul/græn',             hex:'var(--c-jord)', striped:true },
+  mil1:     { label:'Millilína 1', sub:'fjólublár',            hex:'var(--c-mil1)' },
+  mil2:     { label:'Millilína 2', sub:'grár (eða bleikur)',   hex:'var(--c-mil2)' },
+  hlaupari: { label:'Hlaupari',    sub:'rauður',               hex:'var(--c-hlaupari)' },
+};
+const COLOR_ORDER = ['fasi','null_','jord','mil1','mil2','hlaupari'];
+
+/* =========================================================
+   HJÁLPARFÖLL
+========================================================= */
+function pin(boxId, side, t, label){ return {boxId, side, t, label}; }
+
+function computePins(level){
+  const boxMap = {};
+  level.boxes.forEach(function(b){ boxMap[b.id]=b; });
+  const OUT = 28;
+  level.terminals.forEach(function(term){
+    const b = boxMap[term.boxId];
+    let ex,ey,ox,oy;
+    if(term.side==='left'){ ex=b.x; ey=b.y+b.h*term.t; ox=ex-OUT; oy=ey; }
+    if(term.side==='right'){ ex=b.x+b.w; ey=b.y+b.h*term.t; ox=ex+OUT; oy=ey; }
+    term.ex=ex; term.ey=ey; term.ox=ox; term.oy=oy;
+    term.desc = b.label + ' · ' + term.label;
+  });
+  return boxMap;
+}
+
+function outletIcon(b){
+  const cx=b.x+b.w/2, cy=b.y+b.h/2;
+  const rOuter = Math.min(b.w,b.h)/2;
+  const r = rOuter*0.62;
+  return '<rect x="'+b.x+'" y="'+b.y+'" width="'+b.w+'" height="'+b.h+'" rx="12" fill="#ffffff" stroke="#c9c0aa" stroke-width="2.4"/>'
+    + '<rect x="'+(b.x+rOuter*0.16)+'" y="'+(b.y+rOuter*0.16)+'" width="'+(b.w-rOuter*0.32)+'" height="'+(b.h-rOuter*0.32)+'" rx="10" fill="#ffffff" stroke="#2b2820" stroke-width="3.4"/>'
+    + '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="#f5f3ec" stroke="#a39c86" stroke-width="2.2"/>'
+    + '<path d="M '+(cx-r*0.33)+' '+(cy-r)+' L '+(cx-r*0.12)+' '+(cy-r*0.6)+' L '+(cx+r*0.12)+' '+(cy-r*0.6)+' L '+(cx+r*0.33)+' '+(cy-r)+'" fill="none" stroke="#9aa0a6" stroke-width="4.2" stroke-linejoin="round"/>'
+    + '<path d="M '+(cx-r*0.33)+' '+(cy+r)+' L '+(cx-r*0.12)+' '+(cy+r*0.6)+' L '+(cx+r*0.12)+' '+(cy+r*0.6)+' L '+(cx+r*0.33)+' '+(cy+r)+'" fill="none" stroke="#9aa0a6" stroke-width="4.2" stroke-linejoin="round"/>'
+    + '<circle cx="'+(cx-r*0.4)+'" cy="'+cy+'" r="'+(r*0.23)+'" fill="#7c8590"/>'
+    + '<circle cx="'+(cx+r*0.4)+'" cy="'+cy+'" r="'+(r*0.23)+'" fill="#7c8590"/>'
+    + '<circle cx="'+cx+'" cy="'+cy+'" r="'+(r*0.26)+'" fill="#c7cdd2" stroke="#6b6656" stroke-width="1.8"/>'
+    + '<line x1="'+(cx-r*0.17)+'" y1="'+(cy-r*0.07)+'" x2="'+(cx+r*0.17)+'" y2="'+(cy+r*0.07)+'" stroke="#5a5548" stroke-width="1.8"/>';
+}
+function supplyIcon(b){
+  const cx=b.x+b.w/2, cy=b.y+b.h/2;
+  const r = Math.min(b.w,b.h)*0.34;
+  const w = r*0.85;
+  return '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="#fbfaf6" stroke="#3a362c" stroke-width="2.6"/>'
+    + '<path d="M '+(cx-w)+' '+cy+' C '+(cx-w*0.5)+' '+(cy-r*0.85)+', '+(cx-w*0.15)+' '+(cy-r*0.85)+', '+cx+' '+cy+' C '+(cx+w*0.15)+' '+(cy+r*0.85)+', '+(cx+w*0.5)+' '+(cy+r*0.85)+', '+(cx+w)+' '+cy+'" fill="none" stroke="#3a362c" stroke-width="3.4" stroke-linecap="round"/>';
+}
+
+function switchPlate(x,y,w,h,on){
+  const inset = Math.min(w,h)*0.11;
+  const midY = y+h/2;
+  let html = '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="8" fill="#fbfaf6" stroke="#3a362c" stroke-width="2.4"/>';
+  html += '<rect x="'+(x+inset)+'" y="'+(y+inset)+'" width="'+(w-inset*2)+'" height="'+(h-inset*2)+'" rx="5" fill="'+(on?'#f3e4b8':'#eae6da')+'" stroke="#8a8570" stroke-width="1.4"/>';
+  html += '<line x1="'+(x+inset)+'" y1="'+midY+'" x2="'+(x+w-inset)+'" y2="'+midY+'" stroke="#8a8570" stroke-width="1.4"/>';
+  if(on){ html += '<rect x="'+(x+inset)+'" y="'+(y+inset)+'" width="'+(w-inset*2)+'" height="'+(h/2-inset)+'" fill="rgba(0,0,0,0.06)"/>'; }
+  else { html += '<rect x="'+(x+inset)+'" y="'+midY+'" width="'+(w-inset*2)+'" height="'+(h/2-inset)+'" fill="rgba(0,0,0,0.06)"/>'; }
+  html += '<circle cx="'+(x+w-inset*1.6)+'" cy="'+(y+h-inset*1.6)+'" r="'+(Math.min(w,h)*0.06)+'" fill="'+(on?'#4f9d5c':'#5a5548')+'"/>';
+  return html;
+}
+function crossWatermark(b){
+  const m=Math.min(b.w,b.h)*0.14;
+  return '<line x1="'+(b.x+m)+'" y1="'+(b.y+m)+'" x2="'+(b.x+b.w-m)+'" y2="'+(b.y+b.h-m)+'" stroke="#c9c0aa" stroke-width="3.4" opacity="0.8"/>'
+      + '<line x1="'+(b.x+b.w-m)+'" y1="'+(b.y+m)+'" x2="'+(b.x+m)+'" y2="'+(b.y+b.h-m)+'" stroke="#c9c0aa" stroke-width="3.4" opacity="0.8"/>';
+}
+function dimmerPlate(b,lvl){
+  const cx=b.x+b.w/2, cy=b.y+b.h/2-10;
+  const r = Math.min(b.w,b.h)*0.26;
+  const angle=-60+lvl*30, rad=angle*Math.PI/180;
+  const x2=cx+Math.sin(rad)*r, y2=cy-Math.cos(rad)*r;
+  const ringColor = lvl>0 ? '#c08a3e' : '#8a8f94';
+  let html = '<rect x="'+b.x+'" y="'+b.y+'" width="'+b.w+'" height="'+b.h+'" rx="8" fill="#fbfaf6" stroke="#3a362c" stroke-width="2.4"/>';
+  html += '<circle cx="'+cx+'" cy="'+cy+'" r="'+(r+8)+'" fill="#f3efe4" stroke="'+ringColor+'" stroke-width="3.8"/>';
+  html += '<line x1="'+cx+'" y1="'+cy+'" x2="'+x2+'" y2="'+y2+'" stroke="#3a362c" stroke-width="3.6" stroke-linecap="round"/>';
+  html += '<circle cx="'+cx+'" cy="'+cy+'" r="4" fill="#3a362c"/>';
+  html += '<text x="'+cx+'" y="'+(b.y+b.h-12)+'" text-anchor="middle" font-family="SFMono-Regular,Consolas,monospace" font-size="13" fill="#5a5548">'+(lvl*25)+'%</text>';
+  return html;
+}
+function ceilingLamp(b,brightness){
+  const cx = b.x+b.w/2;
+  const topY = b.y+6;
+  const pivotY = topY + (b.w-8)/2;
+  const mountSpan = Math.min(b.h*0.975, 195);
+  const mountH = 23;
+  const gap = 7;
+  const domeR = Math.min(b.h*0.52, 97.5);
+  const domeTopY = topY+mountH+gap;
+  let html='';
+  if(brightness>0){
+    html += '<circle cx="'+cx+'" cy="'+(domeTopY+domeR*0.6)+'" r="'+(domeR*1.7)+'" fill="url(#glow)" opacity="'+brightness+'"/>';
+  }
+  html += '<rect x="'+(cx-mountSpan/2)+'" y="'+topY+'" width="'+mountSpan+'" height="'+mountH+'" rx="4" fill="#cfcabb" stroke="#3a362c" stroke-width="2.4"/>';
+  const fill = brightness>0 ? 'rgba(255,196,64,'+(0.4+0.55*brightness)+')' : '#f3efe4';
+  const stroke = brightness>0 ? '#8a5f12' : '#3a362c';
+  html += '<path d="M '+(cx-domeR)+' '+domeTopY+' A '+domeR+' '+domeR+' 0 0 0 '+(cx+domeR)+' '+domeTopY+' Z" fill="'+fill+'" stroke="'+stroke+'" stroke-width="3.4"/>';
+  if(brightness>0){
+    const ry=domeTopY+domeR+8, ry2=ry+22;
+    html += '<path d="M '+(cx-domeR*0.5)+' '+ry+' L '+(cx-domeR*0.68)+' '+ry2+' M '+cx+' '+(ry+4)+' L '+cx+' '+(ry2+4)+' M '+(cx+domeR*0.5)+' '+ry+' L '+(cx+domeR*0.68)+' '+ry2+'" stroke="#c98f2e" stroke-width="2.8" stroke-linecap="round" opacity="'+brightness+'"/>';
+  }
+  return '<g transform="rotate(-90 '+cx+' '+pivotY+')">'+html+'</g>';
+}
+
+/* =========================================================
+   VERKEFNI (LEVELS)
+========================================================= */
+const LEVELS = [
+/* 1 --------------------------------------------------- */
+{
+  title:'Tengill (innstunga)',
+  tag:'01 · GRUNNTENGING',
+  desc:'Tengdu fæðinguna beint við tengilinn. Þrjár leiðslur, engin brot: fasi, núll og jörð.',
+  hint:'Tengill er einfaldasta tengingin — hver leiðsla úr fæðingunni fer beint á samsvarandi tengil án þess að fara í gegnum neinn rofa.',
+  viewBox:'0 0 920 480',
+  boxes:[
+    {id:'dos', x:60, y:150, w:140, h:170, label:'Fæðing', icon:'supply'},
+    {id:'tengill', x:680, y:150, w:160, h:170, label:'Tengill', icon:'outlet'},
+  ],
+  terminals:[
+    pin('dos','right',0.15,'Fasi'), pin('dos','right',0.5,'Núll'), pin('dos','right',0.85,'Jörð'),
+    pin('tengill','left',0.15,'L'), pin('tengill','left',0.5,'N'), pin('tengill','left',0.85,'PE'),
+  ],
+  correct:[
+    ['dos-right-0.15','tengill-left-0.15','fasi'],
+    ['dos-right-0.5','tengill-left-0.5','null_'],
+    ['dos-right-0.85','tengill-left-0.85','jord'],
+  ]
+},
+/* 2 --------------------------------------------------- */
+{
+  title:'Einfaldur rofi',
+  tag:'02 · EINN ROFI, EITT LJÓS',
+  desc:'Fasinn fer inn á rofann (COM). Út úr rofanum fer millilína að lampanum. Núll og jörð fara beint í lampann.',
+  hint:'Fasinn stoppar í rofanum — út úr rofanum notarðu millilínu að lampanum. Hlauparar eru eingöngu notaðir milli rofa (samrofa/krossrofa), ekki hér.',
+  viewBox:'0 0 900 480',
+  boxes:[
+    {id:'dos', x:40, y:155, w:130, h:170, label:'Fæðing', icon:'supply'},
+    {id:'rofi', x:350, y:136, w:100, h:90, label:'Einfaldur rofi', icon:'switch', toggle:'sw'},
+    {id:'lampi', x:650, y:155, w:150, h:170, label:'Lampi', icon:'bulb', lightKey:'lampi'},
+  ],
+  terminals:[
+    pin('dos','right',0.15,'Fasi'), pin('dos','right',0.5,'Núll'), pin('dos','right',0.85,'Jörð'),
+    pin('rofi','left',0.5,'COM'), pin('rofi','right',0.5,'ÚT'),
+    pin('lampi','left',0.15,'F'), pin('lampi','left',0.5,'N'), pin('lampi','left',0.85,'PE'),
+  ],
+  correct:[
+    ['dos-right-0.15','rofi-left-0.5','fasi'],
+    ['rofi-right-0.5','lampi-left-0.15','mil1'],
+    ['dos-right-0.5','lampi-left-0.5','null_'],
+    ['dos-right-0.85','lampi-left-0.85','jord'],
+  ]
+},
+/* 3 --------------------------------------------------- */
+{
+  title:'Tvöfaldur rofi',
+  tag:'03 · EINN ROFI, TVÖ LJÓS',
+  desc:'Fasinn fer á sameiginlegt COM í rofanum. Millilína 1 liggur frá Út1 í lampa 1 og millilína 2 frá Út2 í lampa 2. Núll og jörð greinast út í báða lampa.',
+  hint:'Notaðu sitthvora millilínuna fyrir hvorn rofaútganginn svo auðvelt sé að greina þær í sundur — hlauparar eiga ekki heima hér.',
+  viewBox:'0 0 920 560',
+  boxes:[
+    {id:'dos', x:30, y:165, w:120, h:170, label:'Fæðing', icon:'supply'},
+    {id:'rofi', x:330, y:130, w:130, h:120, label:'Tvöfaldur rofi', icon:'doubleswitch', toggles:['ut1','ut2']},
+    {id:'lampi1', x:660, y:40, w:150, h:170, label:'Lampi 1', icon:'bulb', lightKey:'lampi1'},
+    {id:'lampi2', x:660, y:280, w:150, h:170, label:'Lampi 2', icon:'bulb', lightKey:'lampi2'},
+  ],
+  terminals:[
+    pin('dos','right',0.15,'Fasi'), pin('dos','right',0.5,'Núll'), pin('dos','right',0.85,'Jörð'),
+    pin('rofi','left',0.5,'COM'), pin('rofi','right',0.25,'ÚT1'), pin('rofi','right',0.75,'ÚT2'),
+    pin('lampi1','left',0.15,'F'), pin('lampi1','left',0.5,'N'), pin('lampi1','left',0.85,'PE'),
+    pin('lampi2','left',0.15,'F'), pin('lampi2','left',0.5,'N'), pin('lampi2','left',0.85,'PE'),
+  ],
+  correct:[
+    ['dos-right-0.15','rofi-left-0.5','fasi'],
+    ['rofi-right-0.25','lampi1-left-0.15','mil1'],
+    ['rofi-right-0.75','lampi2-left-0.15','mil2'],
+    ['dos-right-0.5','lampi1-left-0.5','null_'],
+    ['dos-right-0.5','lampi2-left-0.5','null_'],
+    ['dos-right-0.85','lampi1-left-0.85','jord'],
+    ['dos-right-0.85','lampi2-left-0.85','jord'],
+  ]
+},
+/* 4 --------------------------------------------------- */
+{
+  title:'Samrofar — stýring frá tveimur stöðum',
+  tag:'04 · SAMROFI × 2',
+  desc:'Fasinn fer á COM á samrofa A. Tveir hlauparar tengja samrofa A og B saman. Út úr samrofa B fer millilína í lampann.',
+  hint:'Hlauparar tengja eingöngu saman samrofa innbyrðis. Frá samrofa B og út í lampann notarðu millilínu, alveg eins og með stakan rofa.',
+  viewBox:'0 0 1060 480',
+  boxes:[
+    {id:'dos', x:20, y:175, w:110, h:170, label:'Fæðing', icon:'supply'},
+    {id:'samA', x:260, y:146, w:100, h:110, label:'Samrofi A', icon:'switch', toggle:'A'},
+    {id:'samB', x:560, y:146, w:100, h:110, label:'Samrofi B', icon:'switch', toggle:'B'},
+    {id:'lampi', x:820, y:175, w:140, h:170, label:'Lampi', icon:'bulb', lightKey:'lampi'},
+  ],
+  terminals:[
+    pin('dos','right',0.15,'Fasi'), pin('dos','right',0.5,'Núll'), pin('dos','right',0.85,'Jörð'),
+    pin('samA','left',0.5,'COM'), pin('samA','right',0.25,'M1'), pin('samA','right',0.75,'M2'),
+    pin('samB','left',0.25,'M1'), pin('samB','left',0.75,'M2'), pin('samB','right',0.5,'COM'),
+    pin('lampi','left',0.15,'F'), pin('lampi','left',0.5,'N'), pin('lampi','left',0.85,'PE'),
+  ],
+  correct:[
+    ['dos-right-0.15','samA-left-0.5','fasi'],
+    ['samA-right-0.25','samB-left-0.25','hlaupari'],
+    ['samA-right-0.75','samB-left-0.75','hlaupari'],
+    ['samB-right-0.5','lampi-left-0.15','mil1'],
+    ['dos-right-0.5','lampi-left-0.5','null_'],
+    ['dos-right-0.85','lampi-left-0.85','jord'],
+  ]
+},
+/* 5 --------------------------------------------------- */
+{
+  title:'Krossrofi milli tveggja samrofa',
+  tag:'05 · STÝRING FRÁ ÞREMUR STÖÐUM',
+  desc:'Krossrofinn er settur inn á milli samrofa A og B. Hlauparar tengja samrofa við krossrofann báðum megin, og millilína liggur frá samrofa B út í lampann.',
+  hint:'Allar tengingar sem fara í gegnum krossrofann eru hlauparar. Eina millilínan í þessu verkefni er síðasti spölurinn — frá samrofa B að lampanum.',
+  viewBox:'0 0 1300 480',
+  boxes:[
+    {id:'dos', x:10, y:155, w:90, h:170, label:'Fæðing', icon:'supply'},
+    {id:'samA', x:250, y:126, w:100, h:110, label:'Samrofi A', icon:'switch', toggle:'A'},
+    {id:'kross', x:510, y:120, w:110, h:120, label:'Krossrofi', icon:'cross', toggle:'K'},
+    {id:'samB', x:800, y:126, w:100, h:110, label:'Samrofi B', icon:'switch', toggle:'B'},
+    {id:'lampi', x:1050, y:155, w:130, h:170, label:'Lampi', icon:'bulb', lightKey:'lampi'},
+  ],
+  terminals:[
+    pin('dos','right',0.15,'Fasi'), pin('dos','right',0.5,'Núll'), pin('dos','right',0.85,'Jörð'),
+    pin('samA','left',0.5,'COM'), pin('samA','right',0.25,'M1'), pin('samA','right',0.75,'M2'),
+    pin('kross','left',0.25,'IN1'), pin('kross','left',0.75,'IN2'), pin('kross','right',0.25,'ÚT1'), pin('kross','right',0.75,'ÚT2'),
+    pin('samB','left',0.25,'M1'), pin('samB','left',0.75,'M2'), pin('samB','right',0.5,'COM'),
+    pin('lampi','left',0.15,'F'), pin('lampi','left',0.5,'N'), pin('lampi','left',0.85,'PE'),
+  ],
+  correct:[
+    ['dos-right-0.15','samA-left-0.5','fasi'],
+    ['samA-right-0.25','kross-left-0.25','hlaupari'],
+    ['samA-right-0.75','kross-left-0.75','hlaupari'],
+    ['kross-right-0.25','samB-left-0.25','hlaupari'],
+    ['kross-right-0.75','samB-left-0.75','hlaupari'],
+    ['samB-right-0.5','lampi-left-0.15','mil1'],
+    ['dos-right-0.5','lampi-left-0.5','null_'],
+    ['dos-right-0.85','lampi-left-0.85','jord'],
+  ]
+},
+/* 6 --------------------------------------------------- */
+{
+  title:'Dimmerrofi',
+  tag:'06 · DEYFIROFI',
+  desc:'Margir dimmerar þurfa bæði fasa og núll inn til að knýja rafeindabúnaðinn. Út úr dimmernum fer millilína í lampann.',
+  hint:'Sama meginregla og með einfaldan rofa: út úr dimmernum notarðu millilínu, ekki hlaupara — hlauparar eru bara fyrir tengingar milli rofa.',
+  viewBox:'0 0 940 480',
+  boxes:[
+    {id:'dos', x:40, y:155, w:130, h:170, label:'Fæðing', icon:'supply'},
+    {id:'dimmer', x:350, y:126, w:130, h:110, label:'Dimmerrofi', icon:'dimmer', toggle:'d'},
+    {id:'lampi', x:680, y:155, w:150, h:170, label:'Lampi', icon:'bulb', lightKey:'lampi'},
+  ],
+  terminals:[
+    pin('dos','right',0.15,'Fasi'), pin('dos','right',0.5,'Núll'), pin('dos','right',0.85,'Jörð'),
+    pin('dimmer','left',0.25,'L-IN'), pin('dimmer','left',0.75,'N'), pin('dimmer','right',0.5,'ÚT'),
+    pin('lampi','left',0.15,'F'), pin('lampi','left',0.5,'N'), pin('lampi','left',0.85,'PE'),
+  ],
+  correct:[
+    ['dos-right-0.15','dimmer-left-0.25','fasi'],
+    ['dimmer-right-0.5','lampi-left-0.15','mil1'],
+    ['dos-right-0.5','dimmer-left-0.75','null_'],
+    ['dos-right-0.5','lampi-left-0.5','null_'],
+    ['dos-right-0.85','lampi-left-0.85','jord'],
+  ]
+},
+];
+
+LEVELS.forEach(function(level){
+  level.terminals.forEach(function(t){ t.id = t.boxId + '-' + t.side + '-' + t.t; });
+});
+
+function getInitialState(idx){
+  if(idx===1) return {sw:0};
+  if(idx===2) return {ut1:0, ut2:0};
+  if(idx===3) return {A:0, B:1};
+  if(idx===4) return {A:0, K:0, B:1};
+  if(idx===5) return {d:0};
+  return {};
+}
+function computeLightState(idx, st){
+  if(idx===1) return {lampi: st.sw ? 1:0};
+  if(idx===2) return {lampi1: st.ut1?1:0, lampi2: st.ut2?1:0};
+  if(idx===3) return {lampi: (st.A===st.B)?1:0};
+  if(idx===4){ const energized = st.K ? (1-st.A) : st.A; return {lampi: (st.B===energized)?1:0}; }
+  if(idx===5) return {lampi: (st.d||0)/4};
+  return {};
+}
+
+/* =========================================================
+   STATE
+========================================================= */
+let curIdx = 0;
+let connections = [];
+let pendingStart = null;
+let armedColor = null;
+let attemptsWrong = 0;
+let totalScore = 0;
+let stars = new Array(LEVELS.length).fill(0);
+let solved = new Array(LEVELS.length).fill(false);
+
+const svg = document.getElementById('svg');
+const toastEl = document.getElementById('toast');
+
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ toastEl.classList.remove('show'); }, 1600);
+}
+
+function renderPalette(){
+  const wrap = document.getElementById('swatches');
+  wrap.innerHTML = '';
+  COLOR_ORDER.forEach(function(key){
+    const c = COLORS[key];
+    const el = document.createElement('div');
+    el.className = 'swatch' + (armedColor===key ? ' active':'');
+    el.innerHTML = '<div class="nub' + (c.striped?' striped':'') + '" style="background:' + (c.striped?'':c.hex) + '"></div><div>' + c.label + '</div><small>' + c.sub + '</small>';
+    el.onclick = function(){ armedColor = (armedColor===key) ? null : key; renderPalette(); };
+    wrap.appendChild(el);
+  });
+}
+function renderLegend(){
+  const wrap = document.getElementById('legend');
+  wrap.innerHTML = COLOR_ORDER.map(function(key){
+    const c = COLORS[key];
+    return '<div class="item"><div class="nub' + (c.striped?' striped':'') + '" style="background:' + (c.striped?'':c.hex) + '"></div><div><b>' + c.label + '</b> — ' + c.sub + '</div></div>';
+  }).join('');
+}
+
+/* =========================================================
+   RENDER: SCHEMATIC
+========================================================= */
+function renderSchematic(){
+  const level = LEVELS[curIdx];
+  computePins(level);
+  const st = level.switchState || (level.switchState = getInitialState(curIdx));
+  const lightState = computeLightState(curIdx, st);
+  svg.setAttribute('viewBox', level.viewBox);
+  let html = '';
+
+  html += '<defs>'
+    + '<pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">'
+    +   '<path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--paper-line)" stroke-width="0.6" opacity="0.5"/>'
+    + '</pattern>'
+    + '<radialGradient id="glow" cx="50%" cy="50%" r="50%">'
+    +   '<stop offset="0%" stop-color="#ffe9a8" stop-opacity="0.95"/>'
+    +   '<stop offset="100%" stop-color="#ffe9a8" stop-opacity="0"/>'
+    + '</radialGradient>'
+    + '</defs>';
+  const vb = level.viewBox.split(' ').map(Number);
+  html += '<rect class="grid-bg" x="0" y="0" width="' + vb[2] + '" height="' + vb[3] + '" fill="url(#grid)"/>';
+
+  connections.forEach(function(conn,i){
+    const a = level.terminals.find(function(t){return t.id===conn.a;});
+    const b = level.terminals.find(function(t){return t.id===conn.b;});
+    if(!a||!b) return;
+    const midX = a.ox + (b.ox-a.ox)*0.5;
+    const d = 'M ' + a.ox + ' ' + a.oy + ' C ' + midX + ' ' + a.oy + ', ' + midX + ' ' + b.oy + ', ' + b.ox + ' ' + b.oy;
+    const c = COLORS[conn.color];
+    if(c.striped){
+      html += '<path class="wire-vis" d="' + d + '" stroke="#3c8a3c" stroke-width="6"/>';
+      html += '<path class="wire-vis" d="' + d + '" stroke="#d8c23a" stroke-width="6" stroke-dasharray="9 9"/>';
+    } else {
+      html += '<path class="wire-vis" d="' + d + '" stroke="' + c.hex + '" stroke-width="6"/>';
+    }
+    html += '<path class="wire-hit" data-idx="' + i + '" d="' + d + '"/>';
+  });
+
+  level.boxes.forEach(function(b){
+    if(b.icon==='supply'){
+      html += '<rect class="box-rect" x="' + b.x + '" y="' + b.y + '" width="' + b.w + '" height="' + b.h + '" rx="6"/>';
+      html += supplyIcon(b);
+    } else if(b.icon==='outlet'){
+      html += outletIcon(b);
+    } else if(b.icon==='bulb'){
+      html += ceilingLamp(b, lightState[b.lightKey]||0);
+    } else if(b.icon==='switch'){
+      html += switchPlate(b.x, b.y, b.w, b.h, !!st[b.toggle]);
+    } else if(b.icon==='cross'){
+      html += switchPlate(b.x, b.y, b.w, b.h, !!st[b.toggle]);
+      html += crossWatermark(b);
+    } else if(b.icon==='doubleswitch'){
+      const halfW = b.w/2;
+      html += switchPlate(b.x, b.y, halfW, b.h, !!st[b.toggles[0]]);
+      html += switchPlate(b.x+halfW, b.y, halfW, b.h, !!st[b.toggles[1]]);
+    } else if(b.icon==='dimmer'){
+      html += dimmerPlate(b, st[b.toggle]||0);
+    }
+    html += '<text class="box-label" x="' + (b.x+b.w/2) + '" y="' + (b.y-10) + '" text-anchor="middle">' + b.label + '</text>';
+    if(b.toggle){
+      html += '<rect class="toggle-hit" data-toggle="' + b.toggle + '" x="' + b.x + '" y="' + b.y + '" width="' + b.w + '" height="' + b.h + '" fill="transparent"/>';
+    } else if(b.toggles){
+      const halfW = b.w/2;
+      html += '<rect class="toggle-hit" data-toggle="' + b.toggles[0] + '" x="' + b.x + '" y="' + b.y + '" width="' + halfW + '" height="' + b.h + '" fill="transparent"/>';
+      html += '<rect class="toggle-hit" data-toggle="' + b.toggles[1] + '" x="' + (b.x+halfW) + '" y="' + b.y + '" width="' + halfW + '" height="' + b.h + '" fill="transparent"/>';
+    }
+  });
+
+  level.terminals.forEach(function(t){
+    html += '<line class="stub" x1="' + t.ex + '" y1="' + t.ey + '" x2="' + t.ox + '" y2="' + t.oy + '"/>';
+    const isPending = pendingStart===t.id;
+    const ring = connections.find(function(c){return c.a===t.id||c.b===t.id;});
+    let ringHtml = '';
+    if(ring){
+      const rc = COLORS[ring.color];
+      ringHtml = '<circle cx="' + t.ox + '" cy="' + t.oy + '" r="12" fill="none" stroke="' + (rc.striped?'#c9a52e':rc.hex) + '" stroke-width="2.5" opacity="0.85"/>';
+    }
+    html += '<g class="pin' + (isPending?' pending':'') + '" data-id="' + t.id + '">'
+      + ringHtml
+      + '<circle class="body" cx="' + t.ox + '" cy="' + t.oy + '" r="9"/>'
+      + '<text class="pin-label" x="' + t.ox + '" y="' + (t.oy-14) + '" text-anchor="middle">' + t.label + '</text>'
+      + '</g>';
+  });
+
+  svg.innerHTML = html;
+
+  svg.querySelectorAll('.pin').forEach(function(g){
+    g.addEventListener('click', function(){ handlePinClick(g.getAttribute('data-id')); });
+  });
+  svg.querySelectorAll('.wire-hit').forEach(function(p){
+    p.addEventListener('click', function(e){
+      e.stopPropagation();
+      const idx = parseInt(p.getAttribute('data-idx'),10);
+      connections.splice(idx,1);
+      renderSchematic();
+    });
+  });
+  svg.querySelectorAll('.toggle-hit').forEach(function(el){
+    el.addEventListener('click', function(e){
+      e.stopPropagation();
+      toggleSwitch(el.getAttribute('data-toggle'));
+    });
+  });
+}
+
+/* =========================================================
+   INTERACTION — VÍRAR
+========================================================= */
+function handlePinClick(id){
+  if(!armedColor){ toast('Veldu vír-lit fyrst →'); return; }
+  if(pendingStart===null){ pendingStart = id; renderSchematic(); return; }
+  if(pendingStart===id){ pendingStart = null; renderSchematic(); return; }
+  const exists = connections.some(function(c){
+    return ((c.a===pendingStart&&c.b===id)||(c.a===id&&c.b===pendingStart)) && c.color===armedColor;
+  });
+  if(!exists){ connections.push({a:pendingStart, b:id, color:armedColor}); }
+  pendingStart = null;
+  renderSchematic();
+}
+
+/* =========================================================
+   INTERACTION — ROFAR / DIMMER
+========================================================= */
+function toggleSwitch(key){
+  if(!solved[curIdx]){
+    toast('Ljúktu tengingunni fyrst — ýttu á „Athuga tengingar"');
+    return;
+  }
+  const level = LEVELS[curIdx];
+  const st = level.switchState;
+  if(key==='d'){ st.d = ((st.d||0)+1) % 5; }
+  else { st[key] = st[key] ? 0 : 1; }
+  renderSchematic();
+}
+
+/* =========================================================
+   VALIDATION
+========================================================= */
+function pairKey(a,b){ return [a,b].sort().join('__'); }
+
+function checkAnswer(){
+  const level = LEVELS[curIdx];
+  const consoleEl = document.getElementById('console');
+  let lines = [];
+
+  const correctByPair = {};
+  level.correct.forEach(function(c){ correctByPair[pairKey(c[0],c[1])] = c[2]; });
+
+  const userByPair = {};
+  connections.forEach(function(c){
+    const k = pairKey(c.a,c.b);
+    userByPair[k] = userByPair[k] || new Set();
+    userByPair[k].add(c.color);
+  });
+
+  let correctCount = 0, missing = [], wrongColor = [];
+  Object.keys(correctByPair).forEach(function(k){
+    const wanted = correctByPair[k];
+    const got = userByPair[k];
+    if(!got){ missing.push(k); }
+    else if(got.has(wanted)){ correctCount++; }
+    else { wrongColor.push({k:k, got:[...got][0], wanted:wanted}); }
+  });
+  let extra = [];
+  Object.keys(userByPair).forEach(function(k){ if(!(k in correctByPair)) extra.push(k); });
+
+  const total = Object.keys(correctByPair).length;
+  const perfect = (correctCount===total) && missing.length===0 && wrongColor.length===0 && extra.length===0;
+
+  function labelFor(termId){
+    const t = level.terminals.find(function(t){return t.id===termId;});
+    return t ? t.desc : termId;
+  }
+  function labelPair(k){ const p=k.split('__'); return labelFor(p[0]) + '  ↔  ' + labelFor(p[1]); }
+
+  lines.push('<p class="line ' + (perfect?'ok':'info') + '">Réttar tengingar: ' + correctCount + ' af ' + total + '.</p>');
+  missing.forEach(function(k){ lines.push('<p class="line bad">Vantar tengingu: ' + labelPair(k) + '</p>'); });
+  wrongColor.forEach(function(w){ lines.push('<p class="line warn">Rangur vír-litur milli: ' + labelPair(w.k) + '</p>'); });
+  extra.forEach(function(k){ lines.push('<p class="line bad">Óþörf tenging: ' + labelPair(k) + ' — fjarlægðu hana</p>'); });
+
+  if(perfect){
+    lines.push('<p class="line ok">🎉 Frábært! Allar tengingar réttar.</p>');
+    if(!solved[curIdx]){
+      solved[curIdx] = true;
+      const s = attemptsWrong===0 ? 3 : (attemptsWrong===1 ? 2 : 1);
+      stars[curIdx] = s;
+      totalScore += s*100;
+      updateReadout();
+    }
+    document.getElementById('btn-next').classList.add('show');
+    renderStars();
+    updateSteps();
+    updatePowerHint();
+    if(solved.every(function(x){return x;})){ showAllDone(); }
+  } else {
+    attemptsWrong++;
+  }
+  consoleEl.innerHTML = lines.join('');
+}
+
+function renderStars(){
+  const s = stars[curIdx];
+  document.getElementById('starline').innerHTML =
+    '★★★'.slice(0,s).split('').map(function(){return '<span class="on">★</span>';}).join('') + '☆☆☆'.slice(0, 3-s);
+}
+
+/* =========================================================
+   POWER HINT
+========================================================= */
+function updatePowerHint(){
+  const el = document.getElementById('power-hint');
+  const level = LEVELS[curIdx];
+  const hasToggle = level.boxes.some(function(b){ return b.toggle || b.toggles; });
+  if(solved[curIdx] && hasToggle){
+    el.classList.add('show');
+    el.textContent = (curIdx===5)
+      ? '⚡ Tengingin er rétt — smelltu á dimmerinn á teikningunni til að kveikja og deyfa ljósið.'
+      : '⚡ Tengingin er rétt — smelltu á rofann/rofana á teikningunni til að kveikja og slökkva ljósið.';
+  } else {
+    el.classList.remove('show');
+  }
+}
+
+/* =========================================================
+   LEVEL FLOW
+========================================================= */
+function loadLevel(idx){
+  curIdx = idx;
+  connections = [];
+  pendingStart = null;
+  armedColor = null;
+  attemptsWrong = 0;
+  const level = LEVELS[idx];
+  level.switchState = getInitialState(idx);
+  document.getElementById('lvl-title').textContent = level.title;
+  document.getElementById('lvl-tag').textContent = level.tag;
+  document.getElementById('lvl-desc').textContent = level.desc;
+  document.getElementById('btn-next').classList.remove('show');
+  document.getElementById('console').innerHTML =
+    '<p class="line info">Veldu vír-lit og smelltu svo á tvo tengipunkta til að tengja þá saman. Smelltu á vír til að fjarlægja hann.</p>';
+  renderStars();
+  renderPalette();
+  renderSchematic();
+  updateReadout();
+  updateSteps();
+  updatePowerHint();
+}
+
+function updateReadout(){
+  document.getElementById('ro-level').textContent = (curIdx+1) + ' / ' + LEVELS.length;
+  document.getElementById('ro-score').textContent = totalScore;
+  document.getElementById('ro-status').textContent = solved[curIdx] ? 'Lokið' : 'Í vinnslu';
+}
+function updateSteps(){
+  const wrap = document.getElementById('steps');
+  wrap.innerHTML = LEVELS.map(function(_,i){
+    let cls = 'step-dot';
+    if(solved[i]) cls += ' done'; else if(i===curIdx) cls += ' current';
+    return '<div class="' + cls + '"></div>';
+  }).join('');
+}
+function showAllDone(){
+  const b = document.getElementById('done-banner');
+  b.classList.add('show');
+  const totalStars = stars.reduce(function(a,c){return a+c;},0);
+  document.getElementById('done-text').textContent =
+    'Þú kláraðir öll sex verkefnin með samtals ' + totalScore + ' stig og ' + totalStars + ' af 18 mögulegum stjörnum.';
+}
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+document.getElementById('btn-check').onclick = checkAnswer;
+document.getElementById('btn-reset').onclick = function(){
+  connections = [];
+  pendingStart = null;
+  renderSchematic();
+  document.getElementById('console').innerHTML = '<p class="line info">Tengingar núllstilltar.</p>';
+};
+document.getElementById('btn-hint').onclick = function(){
+  document.getElementById('console').innerHTML = '<p class="line warn">Vísbending: ' + LEVELS[curIdx].hint + '</p>';
+};
+document.getElementById('btn-next').onclick = function(){
+  if(curIdx < LEVELS.length-1){ loadLevel(curIdx+1); }
+};
+
+/* =========================================================
+   INIT
+========================================================= */
+renderLegend();
+loadLevel(0);
+</script>
+</body>
+</html>
