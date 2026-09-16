@@ -1193,10 +1193,10 @@ function colorChip(key){
   return '<span class="color-chip"><i style="background:'+bg+'"></i>'+c.label+'</span>';
 }
 function validationRoles(level){
-  const roles={neutral:new Set(),earth:new Set(),phase:new Set(),switched:new Set(),expected:new Set()};
+  const roles={neutral:new Set(),earth:new Set(),phase:new Set(),switched:new Set(),traveller:new Set(),expected:new Set()};
   level.correct.forEach(function(edge){
     roles.expected.add(edge[0]);roles.expected.add(edge[1]);
-    const target=edge[2]==='null_'?roles.neutral:(edge[2]==='jord'?roles.earth:(edge[2]==='fasi'?roles.phase:((edge[2]==='mil1'||edge[2]==='mil2')?roles.switched:null)));
+    const target=edge[2]==='null_'?roles.neutral:(edge[2]==='jord'?roles.earth:(edge[2]==='fasi'?roles.phase:((edge[2]==='mil1'||edge[2]==='mil2')?roles.switched:(edge[2]==='hlaupari'?roles.traveller:null))));
     if(target){target.add(edge[0]);target.add(edge[1]);}
   });
   return roles;
@@ -1236,6 +1236,7 @@ function wantedColorForConnection(connection,roles){
   const supplyPhase=terminalId('dos','right',0.15);
   if(a===supplyPhase||b===supplyPhase)return 'fasi';
   if(roles.switched.has(a)&&roles.switched.has(b))return 'flex-switched';
+  if(roles.traveller.has(a)&&roles.traveller.has(b))return 'flex-traveller';
   return 'flex';
 }
 function checkAnswer(){
@@ -1244,14 +1245,16 @@ function checkAnswer(){
   connections.forEach(function(connection,idx){
     const wanted=wantedColorForConnection(connection,roles),got=connection.color,k=pairKey(connection.a,connection.b);
     if(!colorAllowed(wanted,got))wrongColor.push({k:k,got:got,wanted:wanted,idx:idx});
-    else if(got==='fasi'&&wanted==='flex-switched')colorWarnings.push({k:k,got:got,wanted:wanted,idx:idx});
+    else if(got==='fasi'&&(wanted==='flex-switched'||wanted==='flex-traveller'))colorWarnings.push({k:k,got:got,wanted:wanted,idx:idx});
   });
   const missingColorCount=Math.max(0,level.correct.length-connections.length);
   const wiringPass=wiring.pass;
   const colorPass=missingColorCount===0&&wrongColor.length===0;
   colorConnectionErrors.clear();colorConnectionWarnings.clear();
   wrongColor.forEach(function(w){colorConnectionErrors.set(w.idx,colorErrorMessage(w.wanted,w.got));});
-  colorWarnings.forEach(function(w){colorConnectionWarnings.set(w.idx,'Viðvörun: brúnn er notaður sem millilína');});
+  colorWarnings.forEach(function(w){
+    colorConnectionWarnings.set(w.idx,w.wanted==='flex-traveller'?'Viðvörun: brúnn er notaður sem hlaupari':'Viðvörun: brúnn er notaður sem millilína');
+  });
   const functional=evaluateFunctionality();
   const perfect=wiringPass&&functional.pass&&colorPass;
   const total=level.correct.length;
@@ -1268,7 +1271,7 @@ function checkAnswer(){
     : plural(functional.issues.length,'virknivilla fannst','virknivillur fundust'));
   const colorState=colorPass?(colorWarnings.length?'warn':'pass'):'fail';
   setCheckCard('check-color',colorState,colorPass
-    ? (colorWarnings.length?plural(colorWarnings.length,'viðvörun um brúnan millilínuvír','viðvaranir um brúna millilínuvíra'):'Allir leiðarar nota leyfilega liti')
+    ? (colorWarnings.length?plural(colorWarnings.length,'viðvörun um brúnan stýrileiðara','viðvaranir um brúna stýrileiðara'):'Allir leiðarar nota leyfilega liti')
     : [wrongColor.length?plural(wrongColor.length,'rangur litur','rangir litir'):'',missingColorCount?plural(missingColorCount,'lit vantar','liti vantar'):''].filter(Boolean).join(' · '));
 
   const groups=[];
@@ -1295,8 +1298,11 @@ function checkAnswer(){
     groups.push('<section class="issue-group"><h4 class="issue-title">3 · Litaval leiðara</h4>'+items.join('')+'</section>');
   }
   if(colorWarnings.length){
-    const items=colorWarnings.map(function(w){return '<div class="issue">'+labelPair(w.k)+': '+colorChip('fasi')+' er notaður sem millilína. Það er leyfilegt, en annar almennur litur gerir fasta fasann skýrari.</div>';});
-    groups.push('<section class="issue-group advisory"><h4 class="issue-title">Viðvörun · Brúnn millilínuvír</h4>'+items.join('')+'</section>');
+    const items=colorWarnings.map(function(w){
+      const role=w.wanted==='flex-traveller'?'hlaupari':'millilína';
+      return '<div class="issue">'+labelPair(w.k)+': '+colorChip('fasi')+' er notaður sem '+role+'. Það er leyfilegt, en annar almennur litur gerir fasta fasann skýrari.</div>';
+    });
+    groups.push('<section class="issue-group advisory"><h4 class="issue-title">Viðvörun · Brúnn stýrileiðari</h4>'+items.join('')+'</section>');
   }
 
   setConsole(perfect
@@ -1332,7 +1338,7 @@ function updatePowerHint(){
   if(solved[curIdx]){
     el.classList.add('show');
     el.textContent=colorConnectionWarnings.size
-      ? '✓ Verkefnið stenst. Athugaðu þó viðvörunina um brúnan millilínuvír.'
+      ? '✓ Verkefnið stenst. Athugaðu þó viðvörunina um brúnan stýrileiðara.'
       : '✓ Yfirferð lokið. Tengingin, litaval og virkni standast verkefnið.';
   }else{
     el.classList.add('show');
