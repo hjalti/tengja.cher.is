@@ -14,6 +14,8 @@
     --brass: #c08a3e;
     --brass-dim: #8a6530;
     --ok: #4f9d5c;
+    --danger: #d84b3e;
+    --warning: #e6ad3a;
     --text: #e8e6df;
     --text-dim: #9aa2ab;
     --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -40,13 +42,18 @@
   .readout{background:#10151a;border:1px solid #333e48;border-radius:4px;padding:8px 16px;
     font-family:var(--mono);color:#7fd88f;font-size:1.05rem;display:flex;gap:22px;align-items:center;white-space:nowrap;}
   .readout div span{display:block;color:var(--text-dim);font-family:var(--body);font-size:.65rem;letter-spacing:.06em;margin-bottom:2px;}
-  .steps{display:flex;gap:6px;margin-top:10px;}
-  .step-dot{width:26px;height:6px;border-radius:3px;background:#333e48;transition:background .2s;}
-  .step-dot.done{background:var(--ok);}
-  .step-dot.current{background:var(--brass);}
+  .steps{display:flex;gap:5px;margin-top:8px;align-items:center;}
+  .step-dot{width:30px;height:14px;padding:0;border:0;border-radius:7px;background:transparent;cursor:pointer;position:relative;}
+  .step-dot::after{content:'';position:absolute;left:2px;right:2px;top:4px;height:6px;border-radius:3px;background:#333e48;transition:background .2s,transform .2s;}
+  .step-dot:hover:not(:disabled)::after,.step-dot:focus-visible::after{transform:scaleY(1.55);}
+  .step-dot.done::after{background:var(--ok);}
+  .step-dot.current::after{background:var(--brass);}
+  .step-dot:disabled{cursor:not-allowed;opacity:.42;}
+  .step-dot:focus-visible{outline:2px solid #f2c15c;outline-offset:2px;}
 
   .layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;}
   @media (max-width:880px){ .layout{grid-template-columns:1fr;} }
+  @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important;}}
 
   .sheet{background:var(--paper);border-radius:6px;padding:0;overflow:hidden;
     box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 0 0 1px #d9d2bd;position:relative;}
@@ -69,8 +76,23 @@
   .box-rect{fill:#f6f2e8;stroke:#3a362c;stroke-width:2;}
   .box-label{font-family:var(--grot);font-size:16px;fill:#2b2820;font-weight:600;}
   .toggle-hit{cursor:pointer;}
-  .wire-hit{fill:none;stroke:transparent;stroke-width:16;cursor:pointer;}
-  .wire-vis{fill:none;stroke-linecap:round;}
+  .wire-hit{fill:none;stroke:transparent;stroke-width:18;cursor:pointer;}
+  .wire-vis{fill:none;stroke-linecap:round;stroke-linejoin:round;}
+  .wire-short{stroke:var(--danger)!important;filter:drop-shadow(0 0 5px rgba(216,75,62,.9));animation:shortPulse .7s infinite alternate;}
+  .wire-color-outline{fill:none;stroke:#ef6f55;stroke-width:14;stroke-linecap:round;stroke-linejoin:round;opacity:.78;filter:drop-shadow(0 0 4px rgba(216,75,62,.7));}
+  .wire-color-warning-outline{fill:none;stroke:#e6ad3a;stroke-width:13;stroke-linecap:round;stroke-linejoin:round;opacity:.72;filter:drop-shadow(0 0 4px rgba(230,173,58,.65));}
+  .wire-warning{pointer-events:none;}
+  .wire-warning line{stroke:#c84f40;stroke-width:2;stroke-dasharray:3 3;}
+  .wire-warning rect{fill:#301b19;stroke:#d86656;stroke-width:2;rx:5;filter:drop-shadow(0 3px 4px rgba(0,0,0,.35));}
+  .wire-warning text{fill:#ffe4df;font-family:var(--body);font-size:12px;font-weight:650;}
+  .wire-warning .warning-dot{fill:#d84b3e;stroke:#fff0ed;stroke-width:1.5;}
+  .wire-warning .warning-mark{fill:#fff;font-family:var(--body);font-size:12px;font-weight:800;}
+  .wire-warning.advisory line{stroke:#b9821d;}
+  .wire-warning.advisory rect{fill:#302612;stroke:#e6ad3a;}
+  .wire-warning.advisory .warning-dot{fill:#d99a25;}
+  .wire-warning.advisory text:not(.warning-mark){fill:#fff1c7;}
+  @keyframes shortPulse{to{opacity:.45;}}
+  .circuit-live{filter:drop-shadow(0 0 8px rgba(230,173,58,.75));}
 
   .toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);
     background:#2b2820;color:#f6f2e8;padding:7px 16px;border-radius:4px;font-size:.85rem;
@@ -79,6 +101,17 @@
 
   .panel{background:var(--bg-panel);border:1px solid #333e48;border-radius:6px;padding:16px;margin-bottom:16px;}
   .panel h3{margin:0 0 10px;font-family:var(--grot);font-size:1.05rem;font-weight:600;color:var(--text);letter-spacing:.2px;}
+  .swatch:focus-visible,.toggle-hit:focus-visible,.supply-hit:focus-visible{outline:3px solid #f2c15c;outline-offset:2px;}
+  .supply-hit{cursor:pointer;}
+  .save-note{margin-top:9px;color:#75818c;font-size:.7rem;text-align:center;}
+  .level-picker{display:block;margin:2px 0 4px;color:var(--text-dim);font-size:.7rem;}
+  .level-picker span{display:block;margin-bottom:5px;letter-spacing:.03em;text-transform:uppercase;}
+  .level-picker select{width:100%;padding:9px 30px 9px 10px;border:1px solid #43515d;border-radius:5px;
+    background:#151c22;color:var(--text);font-family:var(--body);font-size:.8rem;cursor:pointer;}
+  .level-picker select:focus-visible{outline:2px solid #f2c15c;outline-offset:2px;}
+  button.act.reset-progress{display:block;width:100%;margin-top:10px;padding:7px 9px;background:transparent;color:#c98f84;
+    border-color:#67443f;font-size:.78rem;font-family:var(--body);font-weight:500;}
+  button.act.reset-progress:hover,button.act.reset-progress.armed{background:#412522;color:#ffd2ca;border-color:#a65348;}
   .swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
   .swatch{border:2px solid transparent;background:#151b21;border-radius:5px;padding:8px 4px 6px;
     display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;
@@ -96,16 +129,40 @@
   button.act.primary:hover{background:#d29a4c;}
   button.act.ghost{background:transparent;}
   button.act:disabled{opacity:.4;cursor:not-allowed;}
+  button.act.danger{color:#f0a08f;border-color:#704239;}
   button.act.next{background:var(--ok);border-color:var(--ok);color:#082a0c;display:none;}
   button.act.next.show{display:block;}
 
-  .console{margin-top:12px;background:#10151a;border:1px solid #2b333c;border-radius:5px;padding:10px 12px;
-    font-family:var(--mono);font-size:.82rem;line-height:1.5;color:#9fe8ac;min-height:52px;max-height:220px;overflow:auto;}
-  .console .line{margin:0 0 4px;}
-  .console .bad{color:#f0a08f;}
-  .console .warn{color:#f0d18f;}
-  .console .ok{color:#9fe8ac;}
-  .console .info{color:#8fc6f0;}
+  .check-grid{display:grid;gap:7px;margin-top:12px;}
+  .check-card{display:grid;grid-template-columns:32px 1fr;gap:9px;align-items:center;padding:9px 10px;
+    border:1px solid #394550;border-radius:6px;background:#182027;transition:border-color .2s,background .2s;}
+  .check-card .check-icon{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;
+    background:#2b353e;color:#93a0aa;font-weight:800;font-size:.9rem;}
+  .check-card strong{display:block;font-family:var(--grot);font-size:.9rem;color:var(--text);}
+  .check-card small{display:block;margin-top:1px;color:var(--text-dim);font-size:.68rem;line-height:1.25;}
+  .check-card.pass{border-color:#3f7048;background:#19271e;}
+  .check-card.pass .check-icon{background:var(--ok);color:#071d0b;}
+  .check-card.fail{border-color:#884b42;background:#291d1c;}
+  .check-card.fail .check-icon{background:var(--danger);color:#fff;}
+  .check-card.warn{border-color:#886c32;background:#292419;}
+  .check-card.warn .check-icon{background:var(--warning);color:#2b1c03;}
+  .result-details{margin-top:9px;background:#10151a;border:1px solid #2b333c;border-radius:5px;padding:10px 12px;
+    font-size:.78rem;line-height:1.4;color:#c5ccd2;max-height:250px;overflow:auto;}
+  .result-details .line{margin:0 0 5px;}
+  .result-details .bad{color:#f0a08f;}
+  .result-details .warn{color:#f0d18f;}
+  .result-details .ok{color:#9fe8ac;}
+  .result-details .info{color:#9bc9eb;}
+  .issue-group{padding-top:7px;margin-top:7px;border-top:1px solid #29343d;}
+  .issue-group:first-child{padding-top:0;margin-top:0;border-top:0;}
+  .issue-title{margin:0 0 5px;font-family:var(--grot);font-size:.82rem;color:#f0a08f;}
+  .issue-group.advisory .issue-title{color:#f0d18f;}
+  .issue-group.advisory .issue::before{color:#e6ad3a;}
+  .issue{position:relative;display:block;padding-left:12px;margin:5px 0;color:#c8cdd2;}
+  .issue::before{content:'›';position:absolute;left:0;color:#df7165;font-weight:800;}
+  .color-chip{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:1px 5px;border-radius:3px;background:#202930;color:#e5e7e8;font-size:.68rem;}
+  .color-chip i{width:12px;height:8px;border-radius:2px;display:inline-block;}
+  .result-success{text-align:center;padding:3px 0;color:#a9e7b2;font-weight:600;}
 
   .legend{font-size:.78rem;}
   .legend .item{display:flex;align-items:center;gap:8px;margin-bottom:6px;color:var(--text-dim);}
@@ -128,7 +185,7 @@
   <header>
     <div class="title-block">
       <h1>Raflagnir</h1>
-      <p>Æfingakerfi í víratengingum fyrir rafvirkjanema — dragðu rétta víra í rörin</p>
+      <p>Æfingakerfi í víratengingum fyrir rafvirkjanema — veldu leiðara, tengdu og prófaðu rásina</p>
       <div class="steps" id="steps"></div>
     </div>
     <div class="readout">
@@ -161,20 +218,40 @@
 
       <div class="panel">
         <h3>Aðgerðir</h3>
+        <label class="level-picker" for="level-select">
+          <span>Fara í verkefni</span>
+          <select id="level-select" aria-label="Veldu verkefni"></select>
+        </label>
         <div class="btnrow">
-          <button class="act primary" id="btn-check">Athuga tengingar</button>
-          <button class="act ghost" id="btn-reset">Núllstilla</button>
+          <button class="act ghost" id="btn-reset">Núllstilla víra</button>
+          <button class="act ghost" id="btn-hint">Vísbending</button>
         </div>
         <div class="btnrow">
-          <button class="act ghost" id="btn-hint">Vísbending</button>
+          <button class="act primary" id="btn-check">Staðfesta tengingu</button>
+        </div>
+        <div class="btnrow">
+          <button class="act ghost" id="btn-prev">← Fyrra verkefni</button>
           <button class="act next" id="btn-next">Næsta verkefni →</button>
         </div>
-        <div class="console" id="console">
-          <p class="line info">Veldu vír-lit og smelltu svo á tvo tengipunkta til að tengja þá saman. Smelltu á vír til að fjarlægja hann.</p>
+        <div class="check-grid" aria-label="Niðurstöður yfirferðar">
+          <div class="check-card" id="check-wiring">
+            <div class="check-icon">1</div><div><strong>Tengingar</strong><small>Ekki athugað</small></div>
+          </div>
+          <div class="check-card" id="check-function">
+            <div class="check-icon">2</div><div><strong>Virkni</strong><small>Ekki athugað</small></div>
+          </div>
+          <div class="check-card" id="check-color">
+            <div class="check-icon">3</div><div><strong>Litaval</strong><small>Ekki athugað</small></div>
+          </div>
+        </div>
+        <div class="result-details" id="console" role="status" aria-live="polite">
+          <p class="line info">Yfirferðin metur tengingar, virkni og litaval sitt í hvoru lagi.</p>
         </div>
         <div style="margin-top:10px;" id="starwrap">
           <span class="starline" id="starline">☆☆☆</span>
         </div>
+        <div class="save-note">Framvinda vistast sjálfkrafa í þessu tæki.</div>
+        <button class="act danger reset-progress" id="btn-reset-progress" type="button">Endurstilla alla framvindu</button>
       </div>
 
       <div class="panel">
@@ -197,12 +274,12 @@
    LITIR
 ========================================================= */
 const COLORS = {
-  fasi:     { label:'Fasi',        sub:'brúnn',                hex:'var(--c-fasi)' },
-  null_:    { label:'Núll',        sub:'blár',                 hex:'var(--c-null)' },
-  jord:     { label:'Jörð',        sub:'gul/græn',             hex:'var(--c-jord)', striped:true },
-  mil1:     { label:'Millilína 1', sub:'fjólublár',            hex:'var(--c-mil1)' },
-  mil2:     { label:'Millilína 2', sub:'grár (eða bleikur)',   hex:'var(--c-mil2)' },
-  hlaupari: { label:'Hlaupari',    sub:'rauður',               hex:'var(--c-hlaupari)' },
+  fasi:     { label:'Brúnn',       sub:'fasi / almennur',      hex:'var(--c-fasi)' },
+  null_:    { label:'Blár',        sub:'eingöngu núll',        hex:'var(--c-null)' },
+  jord:     { label:'Gulgrænn',    sub:'eingöngu jörð',        hex:'var(--c-jord)', striped:true },
+  mil1:     { label:'Fjólublár',   sub:'almennur leiðari',     hex:'var(--c-mil1)' },
+  mil2:     { label:'Grár',        sub:'almennur leiðari',     hex:'var(--c-mil2)' },
+  hlaupari: { label:'Rauður',      sub:'almennur leiðari',     hex:'var(--c-hlaupari)' },
 };
 const COLOR_ORDER = ['fasi','null_','jord','mil1','mil2','hlaupari'];
 
@@ -226,11 +303,11 @@ function computePins(level){
   return boxMap;
 }
 
-function outletIcon(b){
+function outletIcon(b,powered){
   const cx=b.x+b.w/2, cy=b.y+b.h/2;
   const rOuter = Math.min(b.w,b.h)/2;
   const r = rOuter*0.62;
-  return '<rect x="'+b.x+'" y="'+b.y+'" width="'+b.w+'" height="'+b.h+'" rx="12" fill="#ffffff" stroke="#c9c0aa" stroke-width="2.4"/>'
+  return '<rect class="'+(powered?'circuit-live':'')+'" x="'+b.x+'" y="'+b.y+'" width="'+b.w+'" height="'+b.h+'" rx="12" fill="#ffffff" stroke="'+(powered?'#c08a3e':'#c9c0aa')+'" stroke-width="2.4"/>'
     + '<rect x="'+(b.x+rOuter*0.16)+'" y="'+(b.y+rOuter*0.16)+'" width="'+(b.w-rOuter*0.32)+'" height="'+(b.h-rOuter*0.32)+'" rx="10" fill="#ffffff" stroke="#2b2820" stroke-width="3.4"/>'
     + '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="#f5f3ec" stroke="#a39c86" stroke-width="2.2"/>'
     + '<path d="M '+(cx-r*0.33)+' '+(cy-r)+' L '+(cx-r*0.12)+' '+(cy-r*0.6)+' L '+(cx+r*0.12)+' '+(cy-r*0.6)+' L '+(cx+r*0.33)+' '+(cy-r)+'" fill="none" stroke="#9aa0a6" stroke-width="4.2" stroke-linejoin="round"/>'
@@ -238,14 +315,18 @@ function outletIcon(b){
     + '<circle cx="'+(cx-r*0.4)+'" cy="'+cy+'" r="'+(r*0.23)+'" fill="#7c8590"/>'
     + '<circle cx="'+(cx+r*0.4)+'" cy="'+cy+'" r="'+(r*0.23)+'" fill="#7c8590"/>'
     + '<circle cx="'+cx+'" cy="'+cy+'" r="'+(r*0.26)+'" fill="#c7cdd2" stroke="#6b6656" stroke-width="1.8"/>'
-    + '<line x1="'+(cx-r*0.17)+'" y1="'+(cy-r*0.07)+'" x2="'+(cx+r*0.17)+'" y2="'+(cy+r*0.07)+'" stroke="#5a5548" stroke-width="1.8"/>';
+    + '<line x1="'+(cx-r*0.17)+'" y1="'+(cy-r*0.07)+'" x2="'+(cx+r*0.17)+'" y2="'+(cy+r*0.07)+'" stroke="#5a5548" stroke-width="1.8"/>'
+    + (powered?'<text x="'+cx+'" y="'+(b.y+b.h+22)+'" text-anchor="middle" font-family="SFMono-Regular,Consolas,monospace" font-size="13" fill="#8a5f12">230 V · ekkert tengt</text>':'');
 }
-function supplyIcon(b){
-  const cx=b.x+b.w/2, cy=b.y+b.h/2;
-  const r = Math.min(b.w,b.h)*0.34;
-  const w = r*0.85;
-  return '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="#fbfaf6" stroke="#3a362c" stroke-width="2.6"/>'
-    + '<path d="M '+(cx-w)+' '+cy+' C '+(cx-w*0.5)+' '+(cy-r*0.85)+', '+(cx-w*0.15)+' '+(cy-r*0.85)+', '+cx+' '+cy+' C '+(cx+w*0.15)+' '+(cy+r*0.85)+', '+(cx+w*0.5)+' '+(cy+r*0.85)+', '+(cx+w)+' '+cy+'" fill="none" stroke="#3a362c" stroke-width="3.4" stroke-linecap="round"/>';
+function supplyIcon(b,on,tripped){
+  const cx=b.x+b.w/2, cy=b.y+b.h/2-8;
+  const r = Math.min(b.w,b.h)*0.31;
+  const w = r*0.85, sw=48, sh=22, sx=cx-sw/2, sy=b.y+b.h-29;
+  const switchColor=tripped?'#d84b3e':(on?'#4f9d5c':'#777f84');
+  return '<circle class="'+(on?'circuit-live':'')+'" cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="#fbfaf6" stroke="'+(on?'#c08a3e':'#3a362c')+'" stroke-width="2.6"/>'
+    + '<path d="M '+(cx-w)+' '+cy+' C '+(cx-w*0.5)+' '+(cy-r*0.85)+', '+(cx-w*0.15)+' '+(cy-r*0.85)+', '+cx+' '+cy+' C '+(cx+w*0.15)+' '+(cy+r*0.85)+', '+(cx+w*0.5)+' '+(cy+r*0.85)+', '+(cx+w)+' '+cy+'" fill="none" stroke="#3a362c" stroke-width="3.4" stroke-linecap="round"/>'
+    + '<rect x="'+sx+'" y="'+sy+'" width="'+sw+'" height="'+sh+'" rx="5" fill="'+switchColor+'" stroke="#3a362c" stroke-width="1.8"/>'
+    + '<text x="'+cx+'" y="'+(sy+15)+'" text-anchor="middle" font-family="SFMono-Regular,Consolas,monospace" font-size="11" font-weight="700" fill="#fff">'+(on?'ON':(tripped?'TRIP':'OFF'))+'</text>';
 }
 
 function switchPlate(x,y,w,h,on){
@@ -330,8 +411,8 @@ const LEVELS = [
 {
   title:'Einfaldur rofi',
   tag:'02 · EINN ROFI, EITT LJÓS',
-  desc:'Fasinn fer inn á rofann (COM). Út úr rofanum fer millilína að lampanum. Núll og jörð fara beint í lampann.',
-  hint:'Fasinn stoppar í rofanum — út úr rofanum notarðu millilínu að lampanum. Hlauparar eru eingöngu notaðir milli rofa (samrofa/krossrofa), ekki hér.',
+  desc:'Fasinn fer inn á rofann (COM). Út úr rofanum fer stýrileiðari að lampanum. Núll og jörð fara beint í lampann.',
+  hint:'Fasinn stoppar í rofanum. Út frá rofanum má nota hvaða almennan leiðaralit sem er. Bláan má bara nota fyrir núll og gulgrænan má bara nota fyrir jörð.',
   viewBox:'0 0 900 480',
   boxes:[
     {id:'dos', x:40, y:155, w:130, h:170, label:'Fæðing', icon:'supply'},
@@ -354,8 +435,8 @@ const LEVELS = [
 {
   title:'Tvöfaldur rofi',
   tag:'03 · EINN ROFI, TVÖ LJÓS',
-  desc:'Fasinn fer á sameiginlegt COM í rofanum. Millilína 1 liggur frá Út1 í lampa 1 og millilína 2 frá Út2 í lampa 2. Núll og jörð greinast út í báða lampa.',
-  hint:'Notaðu sitthvora millilínuna fyrir hvorn rofaútganginn svo auðvelt sé að greina þær í sundur — hlauparar eiga ekki heima hér.',
+  desc:'Fasinn fer á sameiginlegt COM í rofanum. Tveir stýrileiðarar liggja frá ÚT1 og ÚT2 í sinn hvorn lampann. Núll og jörð greinast út í báða lampa.',
+  hint:'Notaðu gjarnan sitthvorn almenna litinn fyrir rofaútgangana svo auðvelt sé að greina þá í sundur. Bláan má bara nota fyrir núll og gulgrænan má bara nota fyrir jörð.',
   viewBox:'0 0 920 560',
   boxes:[
     {id:'dos', x:30, y:165, w:120, h:170, label:'Fæðing', icon:'supply'},
@@ -383,8 +464,8 @@ const LEVELS = [
 {
   title:'Samrofar — stýring frá tveimur stöðum',
   tag:'04 · SAMROFI × 2',
-  desc:'Fasinn fer á COM á samrofa A. Tveir hlauparar tengja samrofa A og B saman. Út úr samrofa B fer millilína í lampann.',
-  hint:'Hlauparar tengja eingöngu saman samrofa innbyrðis. Frá samrofa B og út í lampann notarðu millilínu, alveg eins og með stakan rofa.',
+  desc:'Fasinn fer á COM á samrofa A. Tveir hlauparar tengja samrofa A og B saman. Út úr samrofa B fer stýrileiðari í lampann.',
+  hint:'Hlauparar tengja samrofana innbyrðis. Þú mátt velja hvaða almenna leiðaraliti sem er fyrir hlaupara og stýrileiðara.',
   viewBox:'0 0 1060 480',
   boxes:[
     {id:'dos', x:20, y:175, w:110, h:170, label:'Fæðing', icon:'supply'},
@@ -411,8 +492,8 @@ const LEVELS = [
 {
   title:'Krossrofi milli tveggja samrofa',
   tag:'05 · STÝRING FRÁ ÞREMUR STÖÐUM',
-  desc:'Krossrofinn er settur inn á milli samrofa A og B. Hlauparar tengja samrofa við krossrofann báðum megin, og millilína liggur frá samrofa B út í lampann.',
-  hint:'Allar tengingar sem fara í gegnum krossrofann eru hlauparar. Eina millilínan í þessu verkefni er síðasti spölurinn — frá samrofa B að lampanum.',
+  desc:'Krossrofinn er settur inn á milli samrofa A og B. Hlauparar tengja samrofa við krossrofann báðum megin og stýrileiðari liggur frá samrofa B í lampann.',
+  hint:'Allar tengingar í gegnum krossrofann eru hlauparar og almennir leiðaralitir eru frjálsir. Bláan má bara nota fyrir núll og gulgrænan má bara nota fyrir jörð.',
   viewBox:'0 0 1300 480',
   boxes:[
     {id:'dos', x:10, y:155, w:90, h:170, label:'Fæðing', icon:'supply'},
@@ -443,8 +524,8 @@ const LEVELS = [
 {
   title:'Dimmerrofi',
   tag:'06 · DEYFIROFI',
-  desc:'Margir dimmerar þurfa bæði fasa og núll inn til að knýja rafeindabúnaðinn. Út úr dimmernum fer millilína í lampann.',
-  hint:'Sama meginregla og með einfaldan rofa: út úr dimmernum notarðu millilínu, ekki hlaupara — hlauparar eru bara fyrir tengingar milli rofa.',
+  desc:'Margir dimmerar þurfa bæði fasa og núll inn til að knýja rafeindabúnaðinn. Út úr dimmernum fer stýrileiðari í lampann.',
+  hint:'Sama meginregla og með einfaldan rofa: út úr dimmernum má nota hvaða almennan lit sem er. Prófaðu slökkt, miðja birtu og fulla birtu.',
   viewBox:'0 0 940 480',
   boxes:[
     {id:'dos', x:40, y:155, w:130, h:170, label:'Fæðing', icon:'supply'},
@@ -478,18 +559,10 @@ function getInitialState(idx){
   if(idx===5) return {d:0};
   return {};
 }
-function computeLightState(idx, st){
-  if(idx===1) return {lampi: st.sw ? 1:0};
-  if(idx===2) return {lampi1: st.ut1?1:0, lampi2: st.ut2?1:0};
-  if(idx===3) return {lampi: (st.A===st.B)?1:0};
-  if(idx===4){ const energized = st.K ? (1-st.A) : st.A; return {lampi: (st.B===energized)?1:0}; }
-  if(idx===5) return {lampi: (st.d||0)/4};
-  return {};
-}
-
 /* =========================================================
    STATE
 ========================================================= */
+const STORAGE_KEY = 'raflagnir-progress-v2';
 let curIdx = 0;
 let connections = [];
 let pendingStart = null;
@@ -498,6 +571,16 @@ let attemptsWrong = 0;
 let totalScore = 0;
 let stars = new Array(LEVELS.length).fill(0);
 let solved = new Array(LEVELS.length).fill(false);
+let levelWork = LEVELS.map(function(_,i){ return {
+  connections:[], switchState:getInitialState(i), attemptsWrong:0
+}; });
+let breakerOn = false;
+let breakerTripped = false;
+let shortConnections = new Set();
+let colorConnectionErrors = new Map();
+let colorConnectionWarnings = new Map();
+let hasLoadedLevel = false;
+let resetProgressTimer = null;
 
 const svg = document.getElementById('svg');
 const toastEl = document.getElementById('toast');
@@ -516,8 +599,10 @@ function renderPalette(){
     const c = COLORS[key];
     const el = document.createElement('div');
     el.className = 'swatch' + (armedColor===key ? ' active':'');
+    el.setAttribute('role','button');el.setAttribute('tabindex','0');el.setAttribute('aria-pressed',armedColor===key?'true':'false');
     el.innerHTML = '<div class="nub' + (c.striped?' striped':'') + '" style="background:' + (c.striped?'':c.hex) + '"></div><div>' + c.label + '</div><small>' + c.sub + '</small>';
-    el.onclick = function(){ armedColor = (armedColor===key) ? null : key; renderPalette(); };
+    function choose(){armedColor=(armedColor===key)?null:key;renderPalette();}
+    el.onclick=choose;el.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();}};
     wrap.appendChild(el);
   });
 }
@@ -530,19 +615,324 @@ function renderLegend(){
 }
 
 /* =========================================================
+   VISTUN, RAFRÁS OG PRÓFUN
+========================================================= */
+function safeConnection(c,level){
+  return c && typeof c.a==='string' && typeof c.b==='string' && c.a!==c.b
+    && Object.prototype.hasOwnProperty.call(COLORS,c.color)
+    && level.terminals.some(function(t){return t.id===c.a;})
+    && level.terminals.some(function(t){return t.id===c.b;});
+}
+function saveProgress(){
+  try{
+    if(hasLoadedLevel){
+      levelWork[curIdx] = {
+        connections:connections.map(function(c){return {a:c.a,b:c.b,color:c.color};}),
+        switchState:Object.assign({},LEVELS[curIdx].switchState),
+        attemptsWrong:attemptsWrong
+      };
+    }
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({version:2,currentLevel:curIdx,stars:stars,solved:solved,levels:levelWork}));
+  }catch(e){ /* localStorage may be unavailable; the game still works. */ }
+}
+function restoreProgress(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if(!raw || raw.version!==2 || !Array.isArray(raw.levels)) return;
+    stars=LEVELS.map(function(_,i){return Math.max(0,Math.min(3,Number(raw.stars&&raw.stars[i])||0));});
+    solved=LEVELS.map(function(_,i){return !!(raw.solved&&raw.solved[i]);});
+    levelWork=LEVELS.map(function(level,i){
+      const w=raw.levels[i]||{};
+      const seenPairs=new Set();
+      const restored=[];
+      if(Array.isArray(w.connections)) w.connections.forEach(function(c){
+        const pair=safeConnection(c,level)?pairKey(c.a,c.b):null;
+        if(pair&&!seenPairs.has(pair)){seenPairs.add(pair);restored.push({a:c.a,b:c.b,color:c.color});}
+      });
+      return {
+        connections:restored,
+        switchState:cleanSwitchState(i,w.switchState),
+        attemptsWrong:Math.max(0,Number(w.attemptsWrong)||0)
+      };
+    });
+    const restoredLevel=Number(raw.currentLevel);
+    curIdx=Number.isInteger(restoredLevel)&&restoredLevel>=0&&restoredLevel<LEVELS.length?restoredLevel:0;
+  }catch(e){ /* Ignore corrupt saved data. */ }
+  totalScore=stars.reduce(function(sum,n){return sum+n*100;},0);
+}
+function cleanSwitchState(idx,raw){
+  const state=getInitialState(idx), source=raw&&typeof raw==='object'?raw:{};
+  Object.keys(state).forEach(function(key){
+    const n=Number(source[key]);
+    state[key]=key==='d'?(Number.isInteger(n)&&n>=0&&n<=4?n:0):(n===1?1:0);
+  });
+  return state;
+}
+function terminalId(box,side,t){return box+'-'+side+'-'+t;}
+function addGraphEdge(graph,a,b,wireIdx){
+  if(!graph[a]) graph[a]=[];
+  if(!graph[b]) graph[b]=[];
+  graph[a].push({to:b,wireIdx:wireIdx});
+  graph[b].push({to:a,wireIdx:wireIdx});
+}
+function buildConductorGraph(){
+  const graph={};
+  LEVELS[curIdx].terminals.forEach(function(t){graph[t.id]=[];});
+  connections.forEach(function(c,i){addGraphEdge(graph,c.a,c.b,i);});
+  const st=LEVELS[curIdx].switchState;
+  function inside(a,b){addGraphEdge(graph,a,b,null);}
+  if(curIdx===1 && st.sw) inside(terminalId('rofi','left',0.5),terminalId('rofi','right',0.5));
+  if(curIdx===2){
+    if(st.ut1) inside(terminalId('rofi','left',0.5),terminalId('rofi','right',0.25));
+    if(st.ut2) inside(terminalId('rofi','left',0.5),terminalId('rofi','right',0.75));
+  }
+  function changeover(box,state,leftCom){
+    const com=terminalId(box,leftCom?'left':'right',0.5);
+    const side=leftCom?'right':'left';
+    inside(com,terminalId(box,side,state?0.75:0.25));
+  }
+  if(curIdx===3){changeover('samA',st.A,true);changeover('samB',st.B,false);}
+  if(curIdx===4){
+    changeover('samA',st.A,true); changeover('samB',st.B,false);
+    if(st.K){
+      inside(terminalId('kross','left',0.25),terminalId('kross','right',0.75));
+      inside(terminalId('kross','left',0.75),terminalId('kross','right',0.25));
+    }else{
+      inside(terminalId('kross','left',0.25),terminalId('kross','right',0.25));
+      inside(terminalId('kross','left',0.75),terminalId('kross','right',0.75));
+    }
+  }
+  if(curIdx===5 && st.d>0) inside(terminalId('dimmer','left',0.25),terminalId('dimmer','right',0.5));
+  return graph;
+}
+function findPath(graph,start,target){
+  const queue=[start], seen=new Set([start]), parent={};
+  while(queue.length){
+    const node=queue.shift();
+    if(node===target) break;
+    (graph[node]||[]).forEach(function(edge){
+      if(!seen.has(edge.to)){seen.add(edge.to);parent[edge.to]={node:node,wireIdx:edge.wireIdx};queue.push(edge.to);}
+    });
+  }
+  if(!seen.has(target)) return null;
+  const wires=[]; let at=target;
+  while(at!==start){const p=parent[at];if(p.wireIdx!==null) wires.push(p.wireIdx);at=p.node;}
+  return wires;
+}
+function isConnected(graph,a,b){return findPath(graph,a,b)!==null;}
+function detectShortCircuit(){
+  const graph=buildConductorGraph();
+  const phase=terminalId('dos','right',0.15);
+  const targets=[terminalId('dos','right',0.5),terminalId('dos','right',0.85)];
+  const bad=new Set();
+  targets.forEach(function(target){const path=findPath(graph,phase,target);if(path) path.forEach(function(i){bad.add(i);});});
+  return bad;
+}
+function getElectricalState(){
+  const lights={}, level=LEVELS[curIdx], graph=buildConductorGraph();
+  const phase=terminalId('dos','right',0.15), neutral=terminalId('dos','right',0.5);
+  level.boxes.filter(function(b){return b.lightKey;}).forEach(function(b){
+    const live=isConnected(graph,phase,terminalId(b.id,'left',0.15));
+    const hasNeutral=isConnected(graph,neutral,terminalId(b.id,'left',0.5));
+    let value=(breakerOn && live && hasNeutral)?1:0;
+    if(curIdx===5){
+      const dimmerNeutral=isConnected(graph,neutral,terminalId('dimmer','left',0.75));
+      value=(value&&dimmerNeutral)?((level.switchState.d||0)/4):0;
+    }
+    lights[b.lightKey]=value;
+  });
+  const outletPowered=curIdx===0 && breakerOn
+    && isConnected(graph,phase,terminalId('tengill','left',0.15))
+    && isConnected(graph,neutral,terminalId('tengill','left',0.5));
+  return {lights:lights,outletPowered:outletPowered};
+}
+function invalidateTesting(){
+  breakerTripped=false;
+  shortConnections.clear();
+  colorConnectionErrors.clear();
+  colorConnectionWarnings.clear();
+  resetCheckResults('Tengingunum var breytt. Keyrðu yfirferð aftur þegar þú ert tilbúin(n).');
+  saveProgress();
+}
+function setConsole(html){document.getElementById('console').innerHTML=html;}
+function setCheckCard(id,state,summary){
+  const card=document.getElementById(id);
+  card.className='check-card '+(state||'');
+  card.querySelector('.check-icon').textContent=state==='pass'?'✓':((state==='fail'||state==='warn')?'!':id==='check-wiring'?'1':(id==='check-function'?'2':'3'));
+  card.querySelector('small').textContent=summary;
+}
+function resetCheckResults(message){
+  setCheckCard('check-wiring','pending','Ekki athugað');
+  setCheckCard('check-function','pending','Ekki athugað');
+  setCheckCard('check-color','pending','Ekki athugað');
+  if(message) setConsole('<p class="line info">'+message+'</p>');
+}
+function setBreaker(next){
+  pendingStart=null;
+  if(next){
+    const shorts=detectShortCircuit();
+    if(shorts.size){
+      breakerOn=false; breakerTripped=true; shortConnections=shorts;
+      setConsole('<p class="line bad">⚠ Skammhlaup! Vörnin í fæðingunni sló út og ON-rofi fór á TRIP. Rauðu leiðararnir sýna straumleiðina. Lagfærðu og prófaðu aftur.</p>');
+    }else{
+      breakerOn=true; breakerTripped=false; shortConnections.clear();
+      setConsole('<p class="line info">⚡ Spenna er á rásinni. Prófaðu allar stöður rofanna og fylgstu með ljósunum. Leggðu aldrei víra núna.</p>');
+    }
+  }else{
+    breakerOn=false;
+    setConsole('<p class="line info">Fæðingin er á OFF. Nú er óhætt að breyta tengingum.</p>');
+  }
+  renderSchematic();updateSafetyUI();updateReadout();saveProgress();
+}
+function updateSafetyUI(){
+  document.getElementById('btn-check').disabled=false;
+  document.getElementById('btn-reset').disabled=breakerOn;
+}
+
+/* Orthogonal router with clean terminal exits, wide lanes and few bends. */
+function routeConnections(level){
+  const vb=level.viewBox.split(' ').map(Number),step=8,cols=Math.floor(vb[2]/step),rows=Math.floor(vb[3]/step);
+  const occupiedEdges=new Set(),occupiedNodes=new Set(),routes=new Array(connections.length).fill(null);
+  const terminalMap={},terminalUses={},sideGroups={},sideOrdinal={};
+  level.terminals.forEach(function(t){
+    terminalMap[t.id]=t;terminalUses[t.id]=[];
+    const sideKey=t.boxId+'|'+t.side;
+    sideGroups[sideKey]=sideGroups[sideKey]||[];sideGroups[sideKey].push(t);
+  });
+  Object.keys(sideGroups).forEach(function(k){sideGroups[k].sort(function(a,b){return a.oy-b.oy;}).forEach(function(t,i){sideOrdinal[t.id]=i;});});
+  connections.forEach(function(c,i){if(terminalUses[c.a])terminalUses[c.a].push(i);if(terminalUses[c.b])terminalUses[c.b].push(i);});
+  Object.keys(terminalUses).forEach(function(id){
+    terminalUses[id].sort(function(i,j){
+      const ci=connections[i],cj=connections[j];
+      const oi=terminalMap[ci.a===id?ci.b:ci.a],oj=terminalMap[cj.a===id?cj.b:cj.a];
+      return ((oi&&oi.oy)||0)-((oj&&oj.oy)||0)||((oi&&oi.ox)||0)-((oj&&oj.ox)||0);
+    });
+  });
+  function key(x,y,d){return x+','+y+','+d;}
+  function pointKey(x,y){return x+','+y;}
+  function edgeKey(x1,y1,x2,y2){return [pointKey(x1,y1),pointKey(x2,y2)].sort().join('~');}
+  function blocked(x,y,start,end){
+    const px=x*step,py=y*step;
+    if((x===start.x&&y===start.y)||(x===end.x&&y===end.y))return false;
+    return level.boxes.some(function(b){return px>b.x-18&&px<b.x+b.w+18&&py>b.y-38&&py<b.y+b.h+18;});
+  }
+  function escapePoint(term,connIdx){
+    const rank=Math.max(0,terminalUses[term.id].indexOf(connIdx));
+    const distance=18+(sideOrdinal[term.id]||0)*10+rank*8;
+    return{x:term.ox+(term.side==='right'?distance:-distance),y:term.oy};
+  }
+  const order=connections.map(function(c,i){
+    const a=terminalMap[c.a],b=terminalMap[c.b];
+    return{i:i,d:a&&b?Math.abs(a.ox-b.ox)+Math.abs(a.oy-b.oy):Infinity};
+  }).sort(function(a,b){return a.d-b.d||a.i-b.i;});
+
+  order.forEach(function(item){
+    const conn=connections[item.i],a=terminalMap[conn.a],b=terminalMap[conn.b];
+    if(!a||!b){routes[item.i]=[];return;}
+    const aEscape=escapePoint(a,item.i),bEscape=escapePoint(b,item.i);
+    const start={x:Math.round(aEscape.x/step),y:Math.round(aEscape.y/step)};
+    const end={x:Math.round(bEscape.x/step),y:Math.round(bEscape.y/step)};
+    const initialDirection=a.side==='right'?0:1;
+    const open=[{x:start.x,y:start.y,d:initialDirection,g:0,f:0}],best={},parents={};let finish=null;
+    best[key(start.x,start.y,initialDirection)]=0;
+    while(open.length){
+      open.sort(function(p,q){return p.f-q.f;});
+      const cur=open.shift(),curKey=key(cur.x,cur.y,cur.d);
+      if(cur.g!==best[curKey])continue;
+      if(cur.x===end.x&&cur.y===end.y){finish=cur;break;}
+      [[1,0,0],[-1,0,1],[0,1,2],[0,-1,3]].forEach(function(move){
+        const nx=cur.x+move[0],ny=cur.y+move[1],nd=move[2];
+        if(nx<1||ny<1||nx>=cols||ny>=rows||blocked(nx,ny,start,end))return;
+        const ek=edgeKey(cur.x,cur.y,nx,ny),np=pointKey(nx,ny);
+        let proximity=0;
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(delta){if(occupiedNodes.has(pointKey(nx+delta[0],ny+delta[1])))proximity+=2.5;});
+        const extra=1+(cur.d!==nd?5:0)+(occupiedEdges.has(ek)?60:0)+(occupiedNodes.has(np)?28:0)+proximity;
+        const g=cur.g+extra,k=key(nx,ny,nd);
+        if(best[k]===undefined||g<best[k]){
+          best[k]=g;parents[k]=cur;
+          open.push({x:nx,y:ny,d:nd,g:g,f:g+Math.abs(nx-end.x)+Math.abs(ny-end.y)});
+        }
+      });
+    }
+    let cells=[];
+    if(finish){let cur=finish;while(cur){cells.push({x:cur.x,y:cur.y});cur=parents[key(cur.x,cur.y,cur.d)];}cells.reverse();}
+    else cells=[start,{x:start.x,y:1},{x:end.x,y:1},end];
+    cells.forEach(function(p){occupiedNodes.add(pointKey(p.x,p.y));});
+    for(let i=1;i<cells.length;i++)occupiedEdges.add(edgeKey(cells[i-1].x,cells[i-1].y,cells[i].x,cells[i].y));
+    const points=[
+      {x:a.ox,y:a.oy},aEscape,{x:start.x*step,y:aEscape.y}
+    ].concat(cells.map(function(p){return{x:p.x*step,y:p.y*step};})).concat([
+      {x:end.x*step,y:bEscape.y},bEscape,{x:b.ox,y:b.oy}
+    ]);
+    /* Remove tiny grid-alignment jogs next to horizontal terminals. */
+    points.forEach(function(p){
+      if(Math.abs(p.y-a.oy)<=step/2)p.y=a.oy;
+      if(Math.abs(p.y-b.oy)<=step/2)p.y=b.oy;
+    });
+    const compact=[];
+    points.forEach(function(p){
+      const n=compact.length;
+      if(n&&compact[n-1].x===p.x&&compact[n-1].y===p.y)return;
+      if(n>1){
+        const p0=compact[n-2],p1=compact[n-1],cross=(p1.x-p0.x)*(p.y-p1.y)-(p1.y-p0.y)*(p.x-p1.x);
+        const forward=(p1.x-p0.x)*(p.x-p1.x)+(p1.y-p0.y)*(p.y-p1.y)>=0;
+        if(cross===0&&forward){compact[n-1]=p;return;}
+      }
+      compact.push(p);
+    });
+    routes[item.i]=compact;
+  });
+  return routes.map(function(r){return r||[];});
+}
+
+function roundedRoutePath(points){
+  if(!points.length)return '';
+  if(points.length===1)return 'M '+points[0].x+' '+points[0].y;
+  let d='M '+points[0].x+' '+points[0].y;
+  for(let i=1;i<points.length-1;i++){
+    const prev=points[i-1],p=points[i],next=points[i+1];
+    const lenIn=Math.hypot(p.x-prev.x,p.y-prev.y),lenOut=Math.hypot(next.x-p.x,next.y-p.y);
+    const r=Math.min(9,lenIn/2,lenOut/2);
+    if(!r){d+=' L '+p.x+' '+p.y;continue;}
+    const before={x:p.x-(p.x-prev.x)/lenIn*r,y:p.y-(p.y-prev.y)/lenIn*r};
+    const after={x:p.x+(next.x-p.x)/lenOut*r,y:p.y+(next.y-p.y)/lenOut*r};
+    d+=' L '+before.x+' '+before.y+' Q '+p.x+' '+p.y+' '+after.x+' '+after.y;
+  }
+  const last=points[points.length-1];
+  return d+' L '+last.x+' '+last.y;
+}
+function routeMidpoint(points){
+  let total=0;
+  for(let i=1;i<points.length;i++) total+=Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y);
+  let remaining=total/2;
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i],length=Math.hypot(b.x-a.x,b.y-a.y);
+    if(remaining<=length){const t=length?remaining/length:0;return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};}
+    remaining-=length;
+  }
+  return points[Math.floor(points.length/2)];
+}
+function escapeSvgText(text){return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* =========================================================
    RENDER: SCHEMATIC
 ========================================================= */
 function renderSchematic(){
   const level = LEVELS[curIdx];
   computePins(level);
   const st = level.switchState || (level.switchState = getInitialState(curIdx));
-  const lightState = computeLightState(curIdx, st);
+  const electrical = getElectricalState();
+  const lightState = electrical.lights;
   svg.setAttribute('viewBox', level.viewBox);
   let html = '';
 
   html += '<defs>'
     + '<pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">'
     +   '<path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--paper-line)" stroke-width="0.6" opacity="0.5"/>'
+    + '</pattern>'
+    + '<pattern id="earth-wire-pattern" width="12" height="12" patternUnits="userSpaceOnUse">'
+    +   '<rect width="12" height="12" fill="#3c8a3c"/>'
+    +   '<path d="M -3 3 L 3 -3 M 0 12 L 12 0 M 9 15 L 15 9" fill="none" stroke="#d8c23a" stroke-width="5"/>'
     + '</pattern>'
     + '<radialGradient id="glow" cx="50%" cy="50%" r="50%">'
     +   '<stop offset="0%" stop-color="#ffe9a8" stop-opacity="0.95"/>'
@@ -552,18 +942,23 @@ function renderSchematic(){
   const vb = level.viewBox.split(' ').map(Number);
   html += '<rect class="grid-bg" x="0" y="0" width="' + vb[2] + '" height="' + vb[3] + '" fill="url(#grid)"/>';
 
+  const routes=routeConnections(level), warningCallouts=[];
   connections.forEach(function(conn,i){
-    const a = level.terminals.find(function(t){return t.id===conn.a;});
-    const b = level.terminals.find(function(t){return t.id===conn.b;});
-    if(!a||!b) return;
-    const midX = a.ox + (b.ox-a.ox)*0.5;
-    const d = 'M ' + a.ox + ' ' + a.oy + ' C ' + midX + ' ' + a.oy + ', ' + midX + ' ' + b.oy + ', ' + b.ox + ' ' + b.oy;
-    const c = COLORS[conn.color];
+    const points=routes[i];if(!points||!points.length) return;
+    const d=roundedRoutePath(points);
+    const c = COLORS[conn.color], shortClass=shortConnections.has(i)?' wire-short':'';
+    if(colorConnectionErrors.has(i)){
+      html += '<path class="wire-color-outline" d="' + d + '"/>';
+      warningCallouts.push({point:routeMidpoint(points),message:colorConnectionErrors.get(i),kind:'error'});
+    }else if(colorConnectionWarnings.has(i)){
+      html += '<path class="wire-color-warning-outline" d="' + d + '"/>';
+      warningCallouts.push({point:routeMidpoint(points),message:colorConnectionWarnings.get(i),kind:'warning'});
+    }
     if(c.striped){
-      html += '<path class="wire-vis" d="' + d + '" stroke="#3c8a3c" stroke-width="6"/>';
-      html += '<path class="wire-vis" d="' + d + '" stroke="#d8c23a" stroke-width="6" stroke-dasharray="9 9"/>';
+      html += '<path class="wire-vis' + shortClass + '" d="' + d + '" stroke="#245c2a" stroke-width="8"/>';
+      html += '<path class="wire-vis' + shortClass + '" d="' + d + '" stroke="url(#earth-wire-pattern)" stroke-width="6"/>';
     } else {
-      html += '<path class="wire-vis" d="' + d + '" stroke="' + c.hex + '" stroke-width="6"/>';
+      html += '<path class="wire-vis' + shortClass + '" d="' + d + '" stroke="' + c.hex + '" stroke-width="6"/>';
     }
     html += '<path class="wire-hit" data-idx="' + i + '" d="' + d + '"/>';
   });
@@ -571,9 +966,10 @@ function renderSchematic(){
   level.boxes.forEach(function(b){
     if(b.icon==='supply'){
       html += '<rect class="box-rect" x="' + b.x + '" y="' + b.y + '" width="' + b.w + '" height="' + b.h + '" rx="6"/>';
-      html += supplyIcon(b);
+      html += supplyIcon(b,breakerOn,breakerTripped);
+      html += '<rect class="supply-hit" role="button" tabindex="0" aria-label="Setja fæðingu ' + (breakerOn?'af':'á') + '" x="' + (b.x+b.w/2-27) + '" y="' + (b.y+b.h-34) + '" width="54" height="32" rx="6" fill="transparent"/>';
     } else if(b.icon==='outlet'){
-      html += outletIcon(b);
+      html += outletIcon(b,electrical.outletPowered);
     } else if(b.icon==='bulb'){
       html += ceilingLamp(b, lightState[b.lightKey]||0);
     } else if(b.icon==='switch'){
@@ -590,11 +986,11 @@ function renderSchematic(){
     }
     html += '<text class="box-label" x="' + (b.x+b.w/2) + '" y="' + (b.y-10) + '" text-anchor="middle">' + b.label + '</text>';
     if(b.toggle){
-      html += '<rect class="toggle-hit" data-toggle="' + b.toggle + '" x="' + b.x + '" y="' + b.y + '" width="' + b.w + '" height="' + b.h + '" fill="transparent"/>';
+      html += '<rect class="toggle-hit" role="button" tabindex="0" aria-label="Prófa ' + b.label + '" data-toggle="' + b.toggle + '" x="' + b.x + '" y="' + b.y + '" width="' + b.w + '" height="' + b.h + '" fill="transparent"/>';
     } else if(b.toggles){
       const halfW = b.w/2;
-      html += '<rect class="toggle-hit" data-toggle="' + b.toggles[0] + '" x="' + b.x + '" y="' + b.y + '" width="' + halfW + '" height="' + b.h + '" fill="transparent"/>';
-      html += '<rect class="toggle-hit" data-toggle="' + b.toggles[1] + '" x="' + (b.x+halfW) + '" y="' + b.y + '" width="' + halfW + '" height="' + b.h + '" fill="transparent"/>';
+      html += '<rect class="toggle-hit" role="button" tabindex="0" aria-label="Prófa vinstri rofa" data-toggle="' + b.toggles[0] + '" x="' + b.x + '" y="' + b.y + '" width="' + halfW + '" height="' + b.h + '" fill="transparent"/>';
+      html += '<rect class="toggle-hit" role="button" tabindex="0" aria-label="Prófa hægri rofa" data-toggle="' + b.toggles[1] + '" x="' + (b.x+halfW) + '" y="' + b.y + '" width="' + halfW + '" height="' + b.h + '" fill="transparent"/>';
     }
   });
 
@@ -607,31 +1003,63 @@ function renderSchematic(){
       const rc = COLORS[ring.color];
       ringHtml = '<circle cx="' + t.ox + '" cy="' + t.oy + '" r="12" fill="none" stroke="' + (rc.striped?'#c9a52e':rc.hex) + '" stroke-width="2.5" opacity="0.85"/>';
     }
-    html += '<g class="pin' + (isPending?' pending':'') + '" data-id="' + t.id + '">'
+    html += '<g class="pin' + (isPending?' pending':'') + '" role="button" tabindex="0" aria-label="Tengipunktur ' + t.desc + '" data-id="' + t.id + '">'
       + ringHtml
       + '<circle class="body" cx="' + t.ox + '" cy="' + t.oy + '" r="9"/>'
       + '<text class="pin-label" x="' + t.ox + '" y="' + (t.oy-14) + '" text-anchor="middle">' + t.label + '</text>'
       + '</g>';
   });
 
+  const placed=[];
+  warningCallouts.forEach(function(callout){
+    const width=Math.min(285,Math.max(175,callout.message.length*6.4+24)),height=28;
+    let x=Math.max(8,Math.min(vb[2]-width-8,callout.point.x-width/2));
+    let y=Math.max(8,callout.point.y-height-30),tries=0;
+    function overlaps(){
+      const hitsCallout=placed.some(function(p){return x<p.x+p.w+6&&x+width+6>p.x&&y<p.y+p.h+6&&y+height+6>p.y;});
+      const hitsDevice=level.boxes.some(function(b){return x<b.x+b.w+8&&x+width>b.x-8&&y<b.y+b.h+8&&y+height>b.y-30;});
+      return hitsCallout||hitsDevice;
+    }
+    while(overlaps()&&y>8&&tries++<8) y=Math.max(8,y-height-8);
+    if(overlaps()){
+      y=Math.min(vb[3]-height-8,callout.point.y+24);tries=0;
+      while(overlaps()&&y<vb[3]-height-8&&tries++<6) y=Math.min(vb[3]-height-8,y+height+8);
+    }
+    placed.push({x:x,y:y,w:width,h:height});
+    const targetX=Math.max(x+10,Math.min(x+width-10,callout.point.x));
+    html += '<g class="wire-warning'+(callout.kind==='warning'?' advisory':'')+'">'
+      + '<line x1="'+callout.point.x+'" y1="'+callout.point.y+'" x2="'+targetX+'" y2="'+(y+height)+'"/>'
+      + '<circle class="warning-dot" cx="'+callout.point.x+'" cy="'+callout.point.y+'" r="10"/>'
+      + '<text class="warning-mark" x="'+callout.point.x+'" y="'+(callout.point.y+4)+'" text-anchor="middle">!</text>'
+      + '<rect x="'+x+'" y="'+y+'" width="'+width+'" height="'+height+'"/>'
+      + '<text x="'+(x+width/2)+'" y="'+(y+18)+'" text-anchor="middle">'+escapeSvgText(callout.message)+'</text>'
+      + '</g>';
+  });
+
   svg.innerHTML = html;
 
   svg.querySelectorAll('.pin').forEach(function(g){
-    g.addEventListener('click', function(){ handlePinClick(g.getAttribute('data-id')); });
+    function activate(){handlePinClick(g.getAttribute('data-id'));}
+    g.addEventListener('click',activate);
+    g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();activate();}});
   });
   svg.querySelectorAll('.wire-hit').forEach(function(p){
     p.addEventListener('click', function(e){
       e.stopPropagation();
+      if(breakerOn){toast('Settu fæðinguna á OFF áður en þú snertir víra');return;}
       const idx = parseInt(p.getAttribute('data-idx'),10);
-      connections.splice(idx,1);
-      renderSchematic();
+      connections.splice(idx,1);invalidateTesting();renderSchematic();updateSafetyUI();
     });
   });
   svg.querySelectorAll('.toggle-hit').forEach(function(el){
-    el.addEventListener('click', function(e){
-      e.stopPropagation();
-      toggleSwitch(el.getAttribute('data-toggle'));
-    });
+    function activate(e){e.stopPropagation();toggleSwitch(el.getAttribute('data-toggle'));}
+    el.addEventListener('click',activate);
+    el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();activate(e);}});
+  });
+  svg.querySelectorAll('.supply-hit').forEach(function(el){
+    function activate(e){e.stopPropagation();setBreaker(!breakerOn);}
+    el.addEventListener('click',activate);
+    el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();activate(e);}});
   });
 }
 
@@ -639,30 +1067,32 @@ function renderSchematic(){
    INTERACTION — VÍRAR
 ========================================================= */
 function handlePinClick(id){
+  if(breakerOn){toast('⚠ Settu fæðinguna á OFF áður en þú leggur vír');return;}
   if(!armedColor){ toast('Veldu vír-lit fyrst →'); return; }
   if(pendingStart===null){ pendingStart = id; renderSchematic(); return; }
   if(pendingStart===id){ pendingStart = null; renderSchematic(); return; }
   const exists = connections.some(function(c){
-    return ((c.a===pendingStart&&c.b===id)||(c.a===id&&c.b===pendingStart)) && c.color===armedColor;
+    return (c.a===pendingStart&&c.b===id)||(c.a===id&&c.b===pendingStart);
   });
-  if(!exists){ connections.push({a:pendingStart, b:id, color:armedColor}); }
+  if(exists){toast('Þessir punktar eru þegar tengdir');}
+  else{connections.push({a:pendingStart,b:id,color:armedColor});invalidateTesting();}
   pendingStart = null;
-  renderSchematic();
+  renderSchematic();updateSafetyUI();saveProgress();
 }
 
 /* =========================================================
    INTERACTION — ROFAR / DIMMER
 ========================================================= */
 function toggleSwitch(key){
-  if(!solved[curIdx]){
-    toast('Ljúktu tengingunni fyrst — ýttu á „Athuga tengingar"');
-    return;
+  if(!breakerOn){toast('Settu fæðinguna á ON til að prófa rofann');return;}
+  const st=LEVELS[curIdx].switchState;
+  if(key==='d'){st.d=((st.d||0)+1)%5;}else{st[key]=st[key]?0:1;}
+  const shorts=detectShortCircuit();
+  if(shorts.size){
+    breakerOn=false;breakerTripped=true;shortConnections=shorts;
+    setConsole('<p class="line bad">⚠ Rofinn olli skammhlaupi. Fæðingin fór á TRIP og rauðu tengingarnar sýna straumleiðina.</p>');
   }
-  const level = LEVELS[curIdx];
-  const st = level.switchState;
-  if(key==='d'){ st.d = ((st.d||0)+1) % 5; }
-  else { st[key] = st[key] ? 0 : 1; }
-  renderSchematic();
+  renderSchematic();updateSafetyUI();updateReadout();saveProgress();
 }
 
 /* =========================================================
@@ -670,64 +1100,156 @@ function toggleSwitch(key){
 ========================================================= */
 function pairKey(a,b){ return [a,b].sort().join('__'); }
 
-function checkAnswer(){
-  const level = LEVELS[curIdx];
-  const consoleEl = document.getElementById('console');
-  let lines = [];
-
-  const correctByPair = {};
-  level.correct.forEach(function(c){ correctByPair[pairKey(c[0],c[1])] = c[2]; });
-
-  const userByPair = {};
-  connections.forEach(function(c){
-    const k = pairKey(c.a,c.b);
-    userByPair[k] = userByPair[k] || new Set();
-    userByPair[k].add(c.color);
-  });
-
-  let correctCount = 0, missing = [], wrongColor = [];
-  Object.keys(correctByPair).forEach(function(k){
-    const wanted = correctByPair[k];
-    const got = userByPair[k];
-    if(!got){ missing.push(k); }
-    else if(got.has(wanted)){ correctCount++; }
-    else { wrongColor.push({k:k, got:[...got][0], wanted:wanted}); }
-  });
-  let extra = [];
-  Object.keys(userByPair).forEach(function(k){ if(!(k in correctByPair)) extra.push(k); });
-
-  const total = Object.keys(correctByPair).length;
-  const perfect = (correctCount===total) && missing.length===0 && wrongColor.length===0 && extra.length===0;
-
-  function labelFor(termId){
-    const t = level.terminals.find(function(t){return t.id===termId;});
-    return t ? t.desc : termId;
+function colorAllowed(wanted,got){
+  if(wanted==='null_') return got==='null_';
+  if(wanted==='jord') return got==='jord';
+  if(wanted==='fasi') return got==='fasi';
+  return got!=='null_'&&got!=='jord';
+}
+function colorErrorMessage(wanted,got){
+  if(got==='null_') return 'Bláan má bara nota fyrir núll';
+  if(got==='jord') return 'Gulgrænan má bara nota fyrir jörð';
+  if(wanted==='null_') return 'Núll: notaðu bláan leiðara';
+  if(wanted==='jord') return 'Jörð: notaðu gulgrænan leiðara';
+  if(wanted==='fasi') return 'Fasi frá fæðingu: notaðu brúnan';
+  return 'Veldu almennan leiðaralit';
+}
+function functionalTestStates(idx){
+  const initial=getInitialState(idx), keys=Object.keys(initial);
+  if(!keys.length) return [{}];
+  if(keys.length===1&&keys[0]==='d') return [0,1,2,3,4].map(function(d){return {d:d};});
+  const states=[];
+  for(let mask=0;mask<Math.pow(2,keys.length);mask++){
+    const state={};keys.forEach(function(k,i){state[k]=(mask>>i)&1;});states.push(state);
   }
-  function labelPair(k){ const p=k.split('__'); return labelFor(p[0]) + '  ↔  ' + labelFor(p[1]); }
+  return states;
+}
+function expectedOutputs(idx,state){
+  if(idx===0) return {outlet:true};
+  if(idx===1) return {lampi:state.sw?1:0};
+  if(idx===2) return {lampi1:state.ut1?1:0,lampi2:state.ut2?1:0};
+  if(idx===3) return {lampi:state.A===state.B?1:0};
+  if(idx===4) return {lampi:state.B===(state.K?1-state.A:state.A)?1:0};
+  if(idx===5) return {lampi:(state.d||0)/4};
+  return {};
+}
+function stateDescription(state){
+  const names={sw:'Rofi',ut1:'Rofi 1',ut2:'Rofi 2',A:'Samrofi A',B:'Samrofi B',K:'Krossrofi',d:'Dimmer'};
+  const keys=Object.keys(state);
+  if(!keys.length) return 'fæðing ON';
+  return keys.map(function(k){return names[k]+' '+(k==='d'?(state[k]*25)+'%':(state[k]?'ON':'OFF'));}).join(', ');
+}
+function evaluateFunctionality(){
+  const level=LEVELS[curIdx], originalState=Object.assign({},level.switchState), originalPower=breakerOn;
+  const issues=[];
+  breakerOn=true;
+  functionalTestStates(curIdx).forEach(function(state){
+    level.switchState=Object.assign({},state);
+    const desc=stateDescription(state);
+    if(detectShortCircuit().size){issues.push('Skammhlaup þegar '+desc+'.');return;}
+    const actual=getElectricalState(), expected=expectedOutputs(curIdx,state);
+    if(expected.outlet&&!actual.outletPowered) issues.push('Tengill fær ekki réttan fasa og núll þegar fæðing er ON.');
+    Object.keys(expected).forEach(function(key){
+      if(key==='outlet') return;
+      const got=actual.lights[key]||0, wanted=expected[key];
+      if(Math.abs(got-wanted)>0.01){
+        const box=level.boxes.find(function(b){return b.lightKey===key;});
+        issues.push((box?box.label:key)+' virkar ekki rétt þegar '+desc+'.');
+      }
+    });
+  });
+  level.switchState=originalState;breakerOn=originalPower;
+  return {pass:issues.length===0,issues:issues};
+}
+function colorChip(key){
+  const c=COLORS[key], bg=c.striped?'repeating-linear-gradient(45deg,#3c8a3c 0 4px,#d8c23a 4px 8px)':c.hex;
+  return '<span class="color-chip"><i style="background:'+bg+'"></i>'+c.label+'</span>';
+}
+function checkAnswer(){
+  const level=LEVELS[curIdx], correctByPair={}, userByPair={}, connectionIndexByPair={};
+  level.correct.forEach(function(c){correctByPair[pairKey(c[0],c[1])]=c[2];});
+  connections.forEach(function(c,i){const key=pairKey(c.a,c.b);userByPair[key]=c.color;connectionIndexByPair[key]=i;});
 
-  lines.push('<p class="line ' + (perfect?'ok':'info') + '">Réttar tengingar: ' + correctCount + ' af ' + total + '.</p>');
-  missing.forEach(function(k){ lines.push('<p class="line bad">Vantar tengingu: ' + labelPair(k) + '</p>'); });
-  wrongColor.forEach(function(w){ lines.push('<p class="line warn">Rangur vír-litur milli: ' + labelPair(w.k) + '</p>'); });
-  extra.forEach(function(k){ lines.push('<p class="line bad">Óþörf tenging: ' + labelPair(k) + ' — fjarlægðu hana</p>'); });
+  const missing=[],extra=[],wrongColor=[],colorWarnings=[];
+  Object.keys(correctByPair).forEach(function(k){
+    const wanted=correctByPair[k],got=userByPair[k],idx=connectionIndexByPair[k];
+    if(!(k in userByPair)) missing.push(k);
+    else if(!colorAllowed(wanted,got)) wrongColor.push({k:k,got:got,wanted:wanted,idx:idx});
+    else if(got==='fasi'&&(wanted==='mil1'||wanted==='mil2')) colorWarnings.push({k:k,got:got,wanted:wanted,idx:idx});
+  });
+  Object.keys(userByPair).forEach(function(k){if(!(k in correctByPair)) extra.push(k);});
+
+  const wiringPass=missing.length===0&&extra.length===0;
+  const colorPass=missing.length===0&&wrongColor.length===0;
+  colorConnectionErrors.clear();colorConnectionWarnings.clear();
+  wrongColor.forEach(function(w){colorConnectionErrors.set(w.idx,colorErrorMessage(w.wanted,w.got));});
+  colorWarnings.forEach(function(w){colorConnectionWarnings.set(w.idx,'Viðvörun: brúnn er notaður sem millilína');});
+  const functional=evaluateFunctionality();
+  const perfect=wiringPass&&functional.pass&&colorPass;
+  const total=Object.keys(correctByPair).length;
+
+  function labelFor(termId){const t=level.terminals.find(function(x){return x.id===termId;});return t?t.desc:termId;}
+  function labelPair(k){const p=k.split('__');return labelFor(p[0])+' ↔ '+labelFor(p[1]);}
+  function plural(n,one,many){return n+' '+(n===1?one:many);}
+
+  setCheckCard('check-wiring',wiringPass?'pass':'fail',wiringPass
+    ? total+' tengingar á réttum stöðum'
+    : [missing.length?plural(missing.length,'tengingu vantar','tengingar vantar'):'',extra.length?plural(extra.length,'óþörf tenging','óþarfar tengingar'):''].filter(Boolean).join(' · '));
+  setCheckCard('check-function',functional.pass?'pass':'fail',functional.pass
+    ? 'Rásin virkar í öllum rofastöðum'
+    : plural(functional.issues.length,'virknivilla fannst','virknivillur fundust'));
+  const colorState=colorPass?(colorWarnings.length?'warn':'pass'):'fail';
+  setCheckCard('check-color',colorState,colorPass
+    ? (colorWarnings.length?plural(colorWarnings.length,'viðvörun um brúnan millilínuvír','viðvaranir um brúna millilínuvíra'):'Allir leiðarar nota leyfilega liti')
+    : [wrongColor.length?plural(wrongColor.length,'rangur litur','rangir litir'):'',missing.length?plural(missing.length,'lit vantar','liti vantar'):''].filter(Boolean).join(' · '));
+
+  const groups=[];
+  if(!wiringPass){
+    const items=[];
+    missing.forEach(function(k){items.push('<div class="issue">Vantar: <b>'+labelPair(k)+'</b></div>');});
+    extra.forEach(function(k){items.push('<div class="issue">Óþörf tenging: <b>'+labelPair(k)+'</b></div>');});
+    groups.push('<section class="issue-group"><h4 class="issue-title">1 · Lagfærðu tengingar</h4>'+items.join('')+'</section>');
+  }
+  if(!functional.pass){
+    groups.push('<section class="issue-group"><h4 class="issue-title">2 · Virkni rásarinnar</h4>'+functional.issues.slice(0,6).map(function(x){return '<div class="issue">'+x+'</div>';}).join('')+(functional.issues.length>6?'<div class="issue">Og '+(functional.issues.length-6)+' atriði til viðbótar.</div>':'')+'</section>');
+  }
+  if(!colorPass){
+    const items=[];
+    wrongColor.forEach(function(w){
+      const rules=[];
+      if(w.got==='null_') rules.push('Bláan má bara nota fyrir núll');
+      if(w.got==='jord') rules.push('Gulgrænan má bara nota fyrir jörð');
+      if(w.wanted==='null_') rules.push('núll verður að vera blátt');
+      else if(w.wanted==='jord') rules.push('jörð verður að vera gulgræn');
+      else if(w.wanted==='fasi') rules.push('fasi frá fæðingu verður að vera brúnn');
+      else if(!rules.length) rules.push('veldu almennan leiðaralit');
+      items.push('<div class="issue">'+labelPair(w.k)+': '+colorChip(w.got)+' er ekki leyfilegur hér. '+rules.join('. ')+'.</div>');
+    });
+    if(missing.length) items.push('<div class="issue">Veldu lit á tengingarnar sem vantar áður en litavalið getur staðist.</div>');
+    groups.push('<section class="issue-group"><h4 class="issue-title">3 · Litaval leiðara</h4>'+items.join('')+'</section>');
+  }
+  if(colorWarnings.length){
+    const items=colorWarnings.map(function(w){return '<div class="issue">'+labelPair(w.k)+': '+colorChip('fasi')+' er notaður sem millilína. Það er leyfilegt, en annar almennur litur gerir fasta fasann skýrari.</div>';});
+    groups.push('<section class="issue-group advisory"><h4 class="issue-title">Viðvörun · Brúnn millilínuvír</h4>'+items.join('')+'</section>');
+  }
+
+  setConsole(perfect
+    ? '<div class="result-success">✓ Allt stenst — tengingar, virkni og litaval.</div>'+groups.join('')
+    : groups.join(''));
 
   if(perfect){
-    lines.push('<p class="line ok">🎉 Frábært! Allar tengingar réttar.</p>');
     if(!solved[curIdx]){
-      solved[curIdx] = true;
-      const s = attemptsWrong===0 ? 3 : (attemptsWrong===1 ? 2 : 1);
-      stars[curIdx] = s;
-      totalScore += s*100;
-      updateReadout();
+      solved[curIdx]=true;
+      const s=attemptsWrong===0?3:(attemptsWrong===1?2:1);
+      stars[curIdx]=s;totalScore=stars.reduce(function(sum,n){return sum+n*100;},0);
+      updateReadout();saveProgress();
     }
-    document.getElementById('btn-next').classList.add('show');
-    renderStars();
-    updateSteps();
-    updatePowerHint();
-    if(solved.every(function(x){return x;})){ showAllDone(); }
-  } else {
-    attemptsWrong++;
-  }
-  consoleEl.innerHTML = lines.join('');
+    document.getElementById('btn-next').classList.toggle('show',curIdx<LEVELS.length-1);
+    renderStars();updateSteps();updatePowerHint();
+    if(solved.every(function(x){return x;})) showAllDone();
+  }else{attemptsWrong++;saveProgress();}
+  renderSchematic();
+  updateSafetyUI();
 }
 
 function renderStars(){
@@ -740,16 +1262,15 @@ function renderStars(){
    POWER HINT
 ========================================================= */
 function updatePowerHint(){
-  const el = document.getElementById('power-hint');
-  const level = LEVELS[curIdx];
-  const hasToggle = level.boxes.some(function(b){ return b.toggle || b.toggles; });
-  if(solved[curIdx] && hasToggle){
+  const el=document.getElementById('power-hint');
+  if(solved[curIdx]){
     el.classList.add('show');
-    el.textContent = (curIdx===5)
-      ? '⚡ Tengingin er rétt — smelltu á dimmerinn á teikningunni til að kveikja og deyfa ljósið.'
-      : '⚡ Tengingin er rétt — smelltu á rofann/rofana á teikningunni til að kveikja og slökkva ljósið.';
-  } else {
-    el.classList.remove('show');
+    el.textContent=colorConnectionWarnings.size
+      ? '✓ Verkefnið stenst. Athugaðu þó viðvörunina um brúnan millilínuvír.'
+      : '✓ Yfirferð lokið. Tengingin, litaval og virkni standast verkefnið.';
+  }else{
+    el.classList.add('show');
+    el.textContent='Leggðu víra með fæðinguna á OFF. Settu hana á ON ef þú vilt prófa rofa og ljós áður en þú staðfestir.';
   }
 }
 
@@ -757,70 +1278,105 @@ function updatePowerHint(){
    LEVEL FLOW
 ========================================================= */
 function loadLevel(idx){
-  curIdx = idx;
-  connections = [];
-  pendingStart = null;
-  armedColor = null;
-  attemptsWrong = 0;
-  const level = LEVELS[idx];
-  level.switchState = getInitialState(idx);
-  document.getElementById('lvl-title').textContent = level.title;
-  document.getElementById('lvl-tag').textContent = level.tag;
-  document.getElementById('lvl-desc').textContent = level.desc;
-  document.getElementById('btn-next').classList.remove('show');
-  document.getElementById('console').innerHTML =
-    '<p class="line info">Veldu vír-lit og smelltu svo á tvo tengipunkta til að tengja þá saman. Smelltu á vír til að fjarlægja hann.</p>';
-  renderStars();
-  renderPalette();
-  renderSchematic();
-  updateReadout();
-  updateSteps();
-  updatePowerHint();
+  if(resetProgressTimer){clearTimeout(resetProgressTimer);resetProgressTimer=null;}
+  const resetButton=document.getElementById('btn-reset-progress');
+  if(resetButton){resetButton.classList.remove('armed');resetButton.textContent='Endurstilla alla framvindu';}
+  if(hasLoadedLevel) saveProgress();
+  curIdx=idx;
+  const work=levelWork[idx]||{connections:[],switchState:getInitialState(idx),attemptsWrong:0};
+  connections=work.connections;
+  attemptsWrong=work.attemptsWrong||0;
+  pendingStart=null;armedColor=null;breakerOn=false;breakerTripped=false;shortConnections.clear();colorConnectionErrors.clear();colorConnectionWarnings.clear();
+  const level=LEVELS[idx];level.switchState=cleanSwitchState(idx,work.switchState);
+  document.getElementById('lvl-title').textContent=level.title;
+  document.getElementById('lvl-tag').textContent=level.tag;
+  document.getElementById('lvl-desc').textContent=level.desc;
+  document.getElementById('btn-prev').disabled=idx===0;
+  document.getElementById('btn-next').classList.toggle('show',solved[idx]&&idx<LEVELS.length-1);
+  resetCheckResults('Yfirferðin metur tengingar, virkni og litaval sitt í hvoru lagi. Þú mátt staðfesta hvenær sem er.');
+  hasLoadedLevel=true;
+  renderStars();renderPalette();renderSchematic();updateReadout();updateSteps();updatePowerHint();updateSafetyUI();saveProgress();
 }
 
 function updateReadout(){
   document.getElementById('ro-level').textContent = (curIdx+1) + ' / ' + LEVELS.length;
   document.getElementById('ro-score').textContent = totalScore;
-  document.getElementById('ro-status').textContent = solved[curIdx] ? 'Lokið' : 'Í vinnslu';
+  document.getElementById('ro-status').textContent = solved[curIdx] ? 'Lokið' : (breakerOn?'Í prófun':'Í vinnslu');
+}
+function highestUnlockedLevel(){
+  let highest=curIdx;
+  solved.forEach(function(done,i){if(done)highest=Math.max(highest,Math.min(LEVELS.length-1,i+1));});
+  return highest;
 }
 function updateSteps(){
-  const wrap = document.getElementById('steps');
-  wrap.innerHTML = LEVELS.map(function(_,i){
-    let cls = 'step-dot';
-    if(solved[i]) cls += ' done'; else if(i===curIdx) cls += ' current';
-    return '<div class="' + cls + '"></div>';
+  const wrap=document.getElementById('steps'),highest=highestUnlockedLevel();
+  wrap.innerHTML=LEVELS.map(function(level,i){
+    let cls='step-dot';
+    if(solved[i])cls+=' done';
+    if(i===curIdx)cls+=' current';
+    return '<button type="button" class="'+cls+'" data-level="'+i+'" aria-label="Opna verkefni '+(i+1)+': '+level.title+'" '+(i===curIdx?'aria-current="step" ':'')+(i>highest?'disabled':'')+'></button>';
   }).join('');
+  wrap.querySelectorAll('.step-dot:not(:disabled)').forEach(function(button){
+    button.addEventListener('click',function(){const idx=Number(button.getAttribute('data-level'));if(idx!==curIdx)loadLevel(idx);});
+  });
+  const select=document.getElementById('level-select');
+  select.innerHTML=LEVELS.map(function(level,i){
+    return '<option value="'+i+'" '+(i>highest?'disabled':'')+'>'+(i+1)+'. '+level.title+(solved[i]?' ✓':'')+'</option>';
+  }).join('');
+  select.value=String(curIdx);
+  select.onchange=function(){const idx=Number(select.value);if(idx!==curIdx&&idx<=highest)loadLevel(idx);};
 }
 function showAllDone(){
   const b = document.getElementById('done-banner');
   b.classList.add('show');
   const totalStars = stars.reduce(function(a,c){return a+c;},0);
   document.getElementById('done-text').textContent =
-    'Þú kláraðir öll sex verkefnin með samtals ' + totalScore + ' stig og ' + totalStars + ' af 18 mögulegum stjörnum.';
+    'Þú kláraðir öll '+LEVELS.length+' verkefnin með samtals ' + totalScore + ' stig og ' + totalStars + ' af '+(LEVELS.length*3)+' mögulegum stjörnum.';
 }
 
 /* =========================================================
    BUTTONS
 ========================================================= */
-document.getElementById('btn-check').onclick = checkAnswer;
-document.getElementById('btn-reset').onclick = function(){
-  connections = [];
-  pendingStart = null;
-  renderSchematic();
-  document.getElementById('console').innerHTML = '<p class="line info">Tengingar núllstilltar.</p>';
+document.getElementById('btn-check').onclick=checkAnswer;
+document.getElementById('btn-prev').onclick=function(){if(curIdx>0)loadLevel(curIdx-1);};
+document.getElementById('btn-reset').onclick=function(){
+  if(breakerOn){toast('Settu fæðinguna á OFF fyrst');return;}
+  connections=[];pendingStart=null;LEVELS[curIdx].switchState=getInitialState(curIdx);invalidateTesting();
+  renderSchematic();updateSafetyUI();saveProgress();setConsole('<p class="line info">Vírarnir voru núllstilltir. Fæðingin er áfram á OFF.</p>');
 };
-document.getElementById('btn-hint').onclick = function(){
-  document.getElementById('console').innerHTML = '<p class="line warn">Vísbending: ' + LEVELS[curIdx].hint + '</p>';
+document.getElementById('btn-hint').onclick=function(){
+  setConsole('<p class="line warn">Vísbending: '+LEVELS[curIdx].hint+'</p><p class="line info">Litaregla: Bláan má bara nota fyrir núll. Gulgrænan má bara nota fyrir jörð. Fasi frá fæðingu á að vera brúnn. Aðrar stýritengingar mega nota hvaða almennan lit sem er.</p>');
 };
-document.getElementById('btn-next').onclick = function(){
-  if(curIdx < LEVELS.length-1){ loadLevel(curIdx+1); }
+document.getElementById('btn-next').onclick=function(){if(curIdx<LEVELS.length-1)loadLevel(curIdx+1);};
+document.getElementById('btn-reset-progress').onclick=function(){
+  const button=this;
+  if(!button.classList.contains('armed')){
+    button.classList.add('armed');
+    button.textContent='Smelltu aftur til að staðfesta endurstillingu';
+    setConsole('<p class="line warn">⚠ Þetta eyðir öllum vírum, stigum og vistaðri framvindu. Smelltu aftur á endurstillingarhnappinn til að staðfesta.</p>');
+    resetProgressTimer=setTimeout(function(){button.classList.remove('armed');button.textContent='Endurstilla alla framvindu';resetProgressTimer=null;},6000);
+    return;
+  }
+  if(resetProgressTimer)clearTimeout(resetProgressTimer);resetProgressTimer=null;
+  try{localStorage.removeItem(STORAGE_KEY);}catch(e){}
+  curIdx=0;connections=[];attemptsWrong=0;totalScore=0;
+  stars=new Array(LEVELS.length).fill(0);solved=new Array(LEVELS.length).fill(false);
+  levelWork=LEVELS.map(function(_,i){return{connections:[],switchState:getInitialState(i),attemptsWrong:0};});
+  LEVELS.forEach(function(level,i){level.switchState=getInitialState(i);});
+  breakerOn=false;breakerTripped=false;shortConnections.clear();colorConnectionErrors.clear();colorConnectionWarnings.clear();
+  document.getElementById('done-banner').classList.remove('show');
+  hasLoadedLevel=false;loadLevel(0);
+  toast('Öll framvinda hefur verið endurstillt');
 };
 
 /* =========================================================
    INIT
 ========================================================= */
 renderLegend();
-loadLevel(0);
+restoreProgress();
+loadLevel(curIdx);
+if(solved.every(function(x){return x;})) showAllDone();
+window.addEventListener('pagehide',saveProgress);
 </script>
 </body>
 </html>
