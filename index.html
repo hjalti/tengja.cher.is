@@ -733,18 +733,21 @@ function getElectricalState(){
   const lights={}, level=LEVELS[curIdx], graph=buildConductorGraph();
   const phase=terminalId('dos','right',0.15), neutral=terminalId('dos','right',0.5);
   level.boxes.filter(function(b){return b.lightKey;}).forEach(function(b){
-    const live=isConnected(graph,phase,terminalId(b.id,'left',0.15));
-    const hasNeutral=isConnected(graph,neutral,terminalId(b.id,'left',0.5));
-    let value=(breakerOn && live && hasNeutral)?1:0;
+    const f=terminalId(b.id,'left',0.15),n=terminalId(b.id,'left',0.5);
+    const normal=isConnected(graph,phase,f)&&isConnected(graph,neutral,n);
+    const reversed=isConnected(graph,phase,n)&&isConnected(graph,neutral,f);
+    /* The lamp is an AC load: it operates with F/N reversed, even though that wiring is unsafe and rejected separately. */
+    let value=(breakerOn&&(normal||reversed))?1:0;
     if(curIdx===5){
       const dimmerNeutral=isConnected(graph,neutral,terminalId('dimmer','left',0.75));
       value=(value&&dimmerNeutral)?((level.switchState.d||0)/4):0;
     }
     lights[b.lightKey]=value;
   });
-  const outletPowered=curIdx===0 && breakerOn
-    && isConnected(graph,phase,terminalId('tengill','left',0.15))
-    && isConnected(graph,neutral,terminalId('tengill','left',0.5));
+  const outletL=terminalId('tengill','left',0.15),outletN=terminalId('tengill','left',0.5);
+  const outletNormal=isConnected(graph,phase,outletL)&&isConnected(graph,neutral,outletN);
+  const outletReversed=isConnected(graph,phase,outletN)&&isConnected(graph,neutral,outletL);
+  const outletPowered=curIdx===0&&breakerOn&&(outletNormal||outletReversed);
   return {lights:lights,outletPowered:outletPowered};
 }
 function invalidateTesting(){
