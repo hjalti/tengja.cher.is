@@ -77,6 +77,7 @@
   .box-label{font-family:var(--grot);font-size:16px;fill:#2b2820;font-weight:600;}
   .toggle-hit{cursor:pointer;}
   .wire-hit{fill:none;stroke:transparent;stroke-width:18;cursor:pointer;}
+  .wire-casing{fill:none;stroke:var(--paper);stroke-width:11;stroke-linecap:round;stroke-linejoin:round;}
   .wire-vis{fill:none;stroke-linecap:round;stroke-linejoin:round;}
   .wire-short{stroke:var(--danger)!important;filter:drop-shadow(0 0 5px rgba(216,75,62,.9));animation:shortPulse .7s infinite alternate;}
   .wire-color-outline{fill:none;stroke:#ef6f55;stroke-width:14;stroke-linecap:round;stroke-linejoin:round;opacity:.78;filter:drop-shadow(0 0 4px rgba(216,75,62,.7));}
@@ -791,7 +792,7 @@ function updateSafetyUI(){
 
 /* Orthogonal router with clean terminal exits, wide lanes and few bends. */
 function routeConnections(level){
-  const vb=level.viewBox.split(' ').map(Number),step=8,cols=Math.floor(vb[2]/step),rows=Math.floor(vb[3]/step);
+  const vb=level.viewBox.split(' ').map(Number),step=12,cols=Math.floor(vb[2]/step),rows=Math.floor(vb[3]/step);
   const occupiedEdges=new Set(),occupiedNodes=new Set(),routes=new Array(connections.length).fill(null);
   const terminalMap={},terminalUses={},sideGroups={},sideOrdinal={};
   level.terminals.forEach(function(t){
@@ -814,11 +815,23 @@ function routeConnections(level){
   function blocked(x,y,start,end){
     const px=x*step,py=y*step;
     if((x===start.x&&y===start.y)||(x===end.x&&y===end.y))return false;
-    return level.boxes.some(function(b){return px>b.x-18&&px<b.x+b.w+18&&py>b.y-38&&py<b.y+b.h+18;});
+    return level.boxes.some(function(b){return px>b.x-20&&px<b.x+b.w+20&&py>b.y-40&&py<b.y+b.h+20;});
+  }
+  function connectorPenalty(x,y,a,b){
+    const px=x*step,py=y*step;
+    return level.terminals.reduce(function(cost,t){
+      if(t.id===a.id||t.id===b.id)return cost;
+      const left=Math.min(t.ex,t.ox)-12,right=Math.max(t.ex,t.ox)+12;
+      const inCore=px>left&&px<right&&py>t.oy-30&&py<t.oy+18;
+      const dx=Math.max(0,Math.abs(px-t.ox)-30),dy=Math.max(0,Math.abs(py-t.oy)-28);
+      if(inCore)return cost+260;
+      if(dx===0&&dy===0)return cost+50;
+      return cost;
+    },0);
   }
   function escapePoint(term,connIdx){
     const rank=Math.max(0,terminalUses[term.id].indexOf(connIdx));
-    const distance=18+(sideOrdinal[term.id]||0)*10+rank*8;
+    const distance=20+(sideOrdinal[term.id]||0)*12+rank*12;
     return{x:term.ox+(term.side==='right'?distance:-distance),y:term.oy};
   }
   const order=connections.map(function(c,i){
@@ -845,8 +858,8 @@ function routeConnections(level){
         if(nx<1||ny<1||nx>=cols||ny>=rows||blocked(nx,ny,start,end))return;
         const ek=edgeKey(cur.x,cur.y,nx,ny),np=pointKey(nx,ny);
         let proximity=0;
-        [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(delta){if(occupiedNodes.has(pointKey(nx+delta[0],ny+delta[1])))proximity+=2.5;});
-        const extra=1+(cur.d!==nd?5:0)+(occupiedEdges.has(ek)?60:0)+(occupiedNodes.has(np)?28:0)+proximity;
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(delta){if(occupiedNodes.has(pointKey(nx+delta[0],ny+delta[1])))proximity+=3;});
+        const extra=1+(cur.d!==nd?8:0)+(occupiedEdges.has(ek)?80:0)+(occupiedNodes.has(np)?34:0)+proximity+connectorPenalty(nx,ny,a,b);
         const g=cur.g+extra,k=key(nx,ny,nd);
         if(best[k]===undefined||g<best[k]){
           best[k]=g;parents[k]=cur;
@@ -954,6 +967,7 @@ function renderSchematic(){
       html += '<path class="wire-color-warning-outline" d="' + d + '"/>';
       warningCallouts.push({point:routeMidpoint(points),message:colorConnectionWarnings.get(i),kind:'warning'});
     }
+    html += '<path class="wire-casing" d="' + d + '"/>';
     if(c.striped){
       html += '<path class="wire-vis' + shortClass + '" d="' + d + '" stroke="#245c2a" stroke-width="8"/>';
       html += '<path class="wire-vis' + shortClass + '" d="' + d + '" stroke="url(#earth-wire-pattern)" stroke-width="6"/>';
