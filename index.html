@@ -1138,15 +1138,6 @@ function functionalTestStates(idx){
   }
   return states;
 }
-function expectedOutputs(idx,state){
-  if(idx===0) return {outlet:true};
-  if(idx===1) return {lampi:state.sw?1:0};
-  if(idx===2) return {lampi1:state.ut1?1:0,lampi2:state.ut2?1:0};
-  if(idx===3) return {lampi:state.A===state.B?1:0};
-  if(idx===4) return {lampi:state.B===(state.K?1-state.A:state.A)?1:0};
-  if(idx===5) return {lampi:(state.d||0)/4};
-  return {};
-}
 function stateDescription(state){
   const names={sw:'Rofi',ut1:'Rofi 1',ut2:'Rofi 2',A:'Samrofi A',B:'Samrofi B',K:'Krossrofi',d:'Dimmer'};
   const keys=Object.keys(state);
@@ -1154,74 +1145,132 @@ function stateDescription(state){
   return keys.map(function(k){return names[k]+' '+(k==='d'?(state[k]*25)+'%':(state[k]?'ON':'OFF'));}).join(', ');
 }
 function evaluateFunctionality(){
-  const level=LEVELS[curIdx], originalState=Object.assign({},level.switchState), originalPower=breakerOn;
-  const issues=[];
+  const level=LEVELS[curIdx],originalState=Object.assign({},level.switchState),originalPower=breakerOn;
+  const issues=[],records=[];
   breakerOn=true;
   functionalTestStates(curIdx).forEach(function(state){
     level.switchState=Object.assign({},state);
-    const desc=stateDescription(state);
-    if(detectShortCircuit().size){issues.push('Skammhlaup þegar '+desc+'.');return;}
-    const actual=getElectricalState(), expected=expectedOutputs(curIdx,state);
-    if(expected.outlet&&!actual.outletPowered) issues.push('Tengill fær ekki réttan fasa og núll þegar fæðing er ON.');
-    Object.keys(expected).forEach(function(key){
-      if(key==='outlet') return;
-      const got=actual.lights[key]||0, wanted=expected[key];
-      if(Math.abs(got-wanted)>0.01){
-        const box=level.boxes.find(function(b){return b.lightKey===key;});
-        issues.push((box?box.label:key)+' virkar ekki rétt þegar '+desc+'.');
-      }
-    });
+    const shorted=detectShortCircuit().size>0,actual=getElectricalState();
+    records.push({state:Object.assign({},state),actual:actual,shorted:shorted});
+    if(shorted)issues.push('Skammhlaup þegar '+stateDescription(state)+'.');
   });
   level.switchState=originalState;breakerOn=originalPower;
+  if(issues.length)return {pass:false,issues:issues};
+
+  if(curIdx===0){
+    if(!records[0].actual.outletPowered)issues.push('Tengill fær ekki réttan fasa og núll þegar fæðing er ON.');
+  }else if(curIdx===1){
+    const values=records.map(function(r){return r.actual.lights.lampi>0?1:0;});
+    if(new Set(values).size!==2)issues.push('Rofinn kveikir og slekkur ekki á lampanum.');
+  }else if(curIdx===2){
+    const combinations=new Set(records.map(function(r){return (r.actual.lights.lampi1>0?'1':'0')+(r.actual.lights.lampi2>0?'1':'0');}));
+    if(combinations.size!==4)issues.push('Rofarnir veita ekki sjálfstæða stjórn á báðum lömpum.');
+  }else if(curIdx===3||curIdx===4){
+    const keys=Object.keys(getInitialState(curIdx));
+    function outputFor(state){
+      const match=records.find(function(r){return keys.every(function(k){return r.state[k]===state[k];});});
+      return match&&match.actual.lights.lampi>0?1:0;
+    }
+    let responds=true;
+    records.forEach(function(record){
+      keys.forEach(function(k){const flipped=Object.assign({},record.state);flipped[k]=flipped[k]?0:1;if(outputFor(flipped)===outputFor(record.state))responds=false;});
+    });
+    const values=new Set(records.map(function(r){return r.actual.lights.lampi>0?1:0;}));
+    if(!responds||values.size!==2)issues.push('Ekki er hægt að breyta stöðu lampans frá öllum rofastöðum.');
+  }else if(curIdx===5){
+    records.forEach(function(record){
+      const got=record.actual.lights.lampi||0,wanted=(record.state.d||0)/4;
+      if(Math.abs(got-wanted)>.01)issues.push('Dimmer stýrir birtu ekki rétt við '+((record.state.d||0)*25)+'%.');
+    });
+  }
   return {pass:issues.length===0,issues:issues};
 }
 function colorChip(key){
   const c=COLORS[key], bg=c.striped?'repeating-linear-gradient(45deg,#3c8a3c 0 4px,#d8c23a 4px 8px)':c.hex;
   return '<span class="color-chip"><i style="background:'+bg+'"></i>'+c.label+'</span>';
 }
-function checkAnswer(){
-  const level=LEVELS[curIdx], correctByPair={}, userByPair={}, connectionIndexByPair={};
-  level.correct.forEach(function(c){correctByPair[pairKey(c[0],c[1])]=c[2];});
-  connections.forEach(function(c,i){const key=pairKey(c.a,c.b);userByPair[key]=c.color;connectionIndexByPair[key]=i;});
-
-  const missing=[],extra=[],wrongColor=[],colorWarnings=[];
-  Object.keys(correctByPair).forEach(function(k){
-    const wanted=correctByPair[k],got=userByPair[k],idx=connectionIndexByPair[k];
-    if(!(k in userByPair)) missing.push(k);
-    else if(!colorAllowed(wanted,got)) wrongColor.push({k:k,got:got,wanted:wanted,idx:idx});
-    else if(got==='fasi'&&(wanted==='mil1'||wanted==='mil2')) colorWarnings.push({k:k,got:got,wanted:wanted,idx:idx});
+function validationRoles(level){
+  const roles={neutral:new Set(),earth:new Set(),phase:new Set(),switched:new Set(),expected:new Set()};
+  level.correct.forEach(function(edge){
+    roles.expected.add(edge[0]);roles.expected.add(edge[1]);
+    const target=edge[2]==='null_'?roles.neutral:(edge[2]==='jord'?roles.earth:(edge[2]==='fasi'?roles.phase:((edge[2]==='mil1'||edge[2]==='mil2')?roles.switched:null)));
+    if(target){target.add(edge[0]);target.add(edge[1]);}
   });
-  Object.keys(userByPair).forEach(function(k){if(!(k in correctByPair)) extra.push(k);});
-
-  const wiringPass=missing.length===0&&extra.length===0;
-  const colorPass=missing.length===0&&wrongColor.length===0;
+  return roles;
+}
+function validateWiringTopology(level,roles){
+  const graph={},issues=[];
+  level.terminals.forEach(function(t){graph[t.id]=[];});
+  connections.forEach(function(c){graph[c.a].push(c.b);graph[c.b].push(c.a);});
+  if(connections.length!==level.correct.length){
+    const delta=connections.length-level.correct.length;
+    issues.push(delta<0?(-delta)+' tengingu/tengingar vantar.':delta+' óþörf tenging/tengingar eru í rásinni.');
+  }
+  const unused=Array.from(roles.expected).filter(function(id){return !graph[id]||graph[id].length===0;});
+  if(unused.length)issues.push('Ótengdir tengipunktar: '+unused.map(function(id){const t=level.terminals.find(function(x){return x.id===id;});return t?t.desc:id;}).slice(0,4).join(', ')+(unused.length>4?'…':''));
+  function component(start){
+    const seen=new Set([start]),queue=[start];
+    while(queue.length){const at=queue.shift();(graph[at]||[]).forEach(function(next){if(!seen.has(next)){seen.add(next);queue.push(next);}});}
+    return seen;
+  }
+  function checkGroup(name,set){
+    const ids=Array.from(set);if(!ids.length)return;
+    const connected=component(ids[0]);
+    if(ids.some(function(id){return !connected.has(id);}))issues.push(name+' hefur ekki samfellda tengingu til allra réttra punkta.');
+    if(Array.from(connected).some(function(id){return !set.has(id);}))issues.push(name+' er tengt við rangan tengipunkt.');
+  }
+  checkGroup('Núll',roles.neutral);checkGroup('Jörð',roles.earth);checkGroup('Fasi frá fæðingu',roles.phase);
+  connections.forEach(function(c){
+    const a=level.terminals.find(function(t){return t.id===c.a;}),b=level.terminals.find(function(t){return t.id===c.b;});
+    if(a&&b&&a.boxId===b.boxId)issues.push('Tenging milli '+a.desc+' og '+b.desc+' á sama búnaði er ekki viðeigandi.');
+  });
+  return {pass:issues.length===0,issues:Array.from(new Set(issues))};
+}
+function wantedColorForConnection(connection,roles){
+  const a=connection.a,b=connection.b;
+  if(roles.neutral.has(a)&&roles.neutral.has(b))return 'null_';
+  if(roles.earth.has(a)&&roles.earth.has(b))return 'jord';
+  const supplyPhase=terminalId('dos','right',0.15);
+  if(a===supplyPhase||b===supplyPhase)return 'fasi';
+  if(roles.switched.has(a)&&roles.switched.has(b))return 'flex-switched';
+  return 'flex';
+}
+function checkAnswer(){
+  const level=LEVELS[curIdx],roles=validationRoles(level),wiring=validateWiringTopology(level,roles);
+  const wrongColor=[],colorWarnings=[];
+  connections.forEach(function(connection,idx){
+    const wanted=wantedColorForConnection(connection,roles),got=connection.color,k=pairKey(connection.a,connection.b);
+    if(!colorAllowed(wanted,got))wrongColor.push({k:k,got:got,wanted:wanted,idx:idx});
+    else if(got==='fasi'&&wanted==='flex-switched')colorWarnings.push({k:k,got:got,wanted:wanted,idx:idx});
+  });
+  const missingColorCount=Math.max(0,level.correct.length-connections.length);
+  const wiringPass=wiring.pass;
+  const colorPass=missingColorCount===0&&wrongColor.length===0;
   colorConnectionErrors.clear();colorConnectionWarnings.clear();
   wrongColor.forEach(function(w){colorConnectionErrors.set(w.idx,colorErrorMessage(w.wanted,w.got));});
   colorWarnings.forEach(function(w){colorConnectionWarnings.set(w.idx,'Viðvörun: brúnn er notaður sem millilína');});
   const functional=evaluateFunctionality();
   const perfect=wiringPass&&functional.pass&&colorPass;
-  const total=Object.keys(correctByPair).length;
+  const total=level.correct.length;
 
   function labelFor(termId){const t=level.terminals.find(function(x){return x.id===termId;});return t?t.desc:termId;}
   function labelPair(k){const p=k.split('__');return labelFor(p[0])+' ↔ '+labelFor(p[1]);}
   function plural(n,one,many){return n+' '+(n===1?one:many);}
 
   setCheckCard('check-wiring',wiringPass?'pass':'fail',wiringPass
-    ? total+' tengingar á réttum stöðum'
-    : [missing.length?plural(missing.length,'tengingu vantar','tengingar vantar'):'',extra.length?plural(extra.length,'óþörf tenging','óþarfar tengingar'):''].filter(Boolean).join(' · '));
+    ? total+' tengingar mynda viðurkennda rás'
+    : plural(wiring.issues.length,'tengivilla fannst','tengivillur fundust'));
   setCheckCard('check-function',functional.pass?'pass':'fail',functional.pass
     ? 'Rásin virkar í öllum rofastöðum'
     : plural(functional.issues.length,'virknivilla fannst','virknivillur fundust'));
   const colorState=colorPass?(colorWarnings.length?'warn':'pass'):'fail';
   setCheckCard('check-color',colorState,colorPass
     ? (colorWarnings.length?plural(colorWarnings.length,'viðvörun um brúnan millilínuvír','viðvaranir um brúna millilínuvíra'):'Allir leiðarar nota leyfilega liti')
-    : [wrongColor.length?plural(wrongColor.length,'rangur litur','rangir litir'):'',missing.length?plural(missing.length,'lit vantar','liti vantar'):''].filter(Boolean).join(' · '));
+    : [wrongColor.length?plural(wrongColor.length,'rangur litur','rangir litir'):'',missingColorCount?plural(missingColorCount,'lit vantar','liti vantar'):''].filter(Boolean).join(' · '));
 
   const groups=[];
   if(!wiringPass){
-    const items=[];
-    missing.forEach(function(k){items.push('<div class="issue">Vantar: <b>'+labelPair(k)+'</b></div>');});
-    extra.forEach(function(k){items.push('<div class="issue">Óþörf tenging: <b>'+labelPair(k)+'</b></div>');});
+    const items=wiring.issues.map(function(issue){return '<div class="issue">'+issue+'</div>';});
     groups.push('<section class="issue-group"><h4 class="issue-title">1 · Lagfærðu tengingar</h4>'+items.join('')+'</section>');
   }
   if(!functional.pass){
@@ -1239,7 +1288,7 @@ function checkAnswer(){
       else if(!rules.length) rules.push('veldu almennan leiðaralit');
       items.push('<div class="issue">'+labelPair(w.k)+': '+colorChip(w.got)+' er ekki leyfilegur hér. '+rules.join('. ')+'.</div>');
     });
-    if(missing.length) items.push('<div class="issue">Veldu lit á tengingarnar sem vantar áður en litavalið getur staðist.</div>');
+    if(missingColorCount) items.push('<div class="issue">Veldu lit á tengingarnar sem vantar áður en litavalið getur staðist.</div>');
     groups.push('<section class="issue-group"><h4 class="issue-title">3 · Litaval leiðara</h4>'+items.join('')+'</section>');
   }
   if(colorWarnings.length){
